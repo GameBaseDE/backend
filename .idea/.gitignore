@@ -1,0 +1,5 @@
+workspace.xml
+misc.xml
+$*
+# Editor-based HTTP Client requests
+/httpRequests/
