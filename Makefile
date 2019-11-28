@@ -32,7 +32,7 @@ dep: ## Get the dependencies
 	@go get -v -d ./...
 
 build: dep ## Build the binary file
-	@go build -i -v $(PKG)
+	@go build -i -v
 
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)

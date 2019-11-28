@@ -1,4 +1,4 @@
-module gbserv
+module gamebase-daemon
 
 go 1.13
 

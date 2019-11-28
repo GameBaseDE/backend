@@ -14,9 +14,7 @@ stages:
   - deploy
 
 before_script:
-  - mkdir -p /go/src/gitlab.tandashi.de/GameBase /go/src/_/builds
-  - cp -r $CI_PROJECT_DIR /go/src/gitlab.tandashi.de/GameBase/go-test
-  - ln -s /go/src/gitlab.tandashi.de/etaloof /go/src/_/builds/GameBase
+  - cd $CI_PROJECT_DIR
   - make dep
 
 unit_tests:
