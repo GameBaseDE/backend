@@ -30,7 +30,6 @@ coverhtml: ## Generate global code coverage report in HTML
 dep: ## Get the dependencies
 	go env
 	@go get -v -d ./...
-	@go get github.com/docker/docker/client
 
 build: dep ## Build the binary file
 	@go build -i -v $(PKG)
