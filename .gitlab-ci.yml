@@ -1,0 +1,91 @@
+image: dregistry.gahr.dev/ci-go-runner
+
+cache:
+  paths:
+    - /apt-cache
+    - /go/src/github.com
+    - /go/src/golang.org
+    - /go/src/google.golang.org
+    - /go/src/gopkg.in
+
+stages:
+  - test
+  - build
+  - deploy
+
+before_script:
+  - mkdir -p /go/src/gitlab.tandashi.de/GameBase /go/src/_/builds
+  - cp -r $CI_PROJECT_DIR /go/src/gitlab.tandashi.de/GameBase/go-test
+  - ln -s /go/src/gitlab.tandashi.de/etaloof /go/src/_/builds/GameBase
+  - make dep
+
+unit_tests:
+  stage: test
+  script:
+    - make test
+  tags:
+    - GameBase
+
+race_detector:
+  stage: test
+  script:
+    - make race
+  tags:
+    - GameBase
+
+memory_sanitizer:
+  stage: test
+  script:
+    - make msan
+  tags:
+    - GameBase
+
+code_coverage:
+  stage: test
+  script:
+    - make coverage
+  tags:
+    - GameBase
+
+code_coverage_report:
+  stage: test
+  script:
+    - make coverhtml
+  only:
+  - master
+  artifacts:
+    paths:
+      - coverage.html
+  tags:
+    - GameBase
+
+lint_code:
+  stage: test
+  script:
+    - make lint
+  allow_failure: true
+  tags:
+    - GameBase
+
+build:
+  stage: build
+  script:
+    - make
+  artifacts:
+    paths:
+    - go-test
+  tags:
+    - GameBase
+
+pages:
+  stage: deploy
+  script:
+    - mkdir public
+    - cp coverage.html public
+  artifacts:
+    paths:
+      - public/
+  only:
+    - master
+  tags:
+    - GameBase
