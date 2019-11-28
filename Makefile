@@ -32,7 +32,7 @@ dep: ## Get the dependencies
 	@go get -v -d ./...
 
 build: dep ## Build the binary file
-	@go build -i -v
+	@go build -i -v -o out/server
 
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)

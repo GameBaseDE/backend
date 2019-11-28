@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"os"
 )
 
 type DeployContainerRequest struct {
@@ -29,8 +30,12 @@ func main() {
 	router.DELETE("/api/destroy", destroyByQuery)
 	router.DELETE("/api/destroy/:id", destroyByParam)
 
-	// Listen and serve on 0.0.0.0:8080
-	if router.Run(":8080") != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "80"
+	}
+
+	if router.Run(":"+port) != nil {
 		println("Could not start the server")
 	}
 }

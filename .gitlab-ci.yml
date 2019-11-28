@@ -71,9 +71,18 @@ build:
     - make
   artifacts:
     paths:
-    - go-test
+    - out
   tags:
     - GameBase
+
+deploy_server:
+  stage: deploy
+  script:
+    - screen -dmS backend bash -c "env GIN_MODE=release PORT=42069 out/server; while true; do sleep 1; done"
+  only:
+    - master
+  tags:
+    - shell
 
 pages:
   stage: deploy
