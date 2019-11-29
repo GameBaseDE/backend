@@ -22,28 +22,28 @@ unit_tests:
   script:
     - make test
   tags:
-    - gamebase
+    - docker
 
 race_detector:
   stage: test
   script:
     - make race
   tags:
-    - gamebase
+    - docker
 
 memory_sanitizer:
   stage: test
   script:
     - make msan
   tags:
-    - gamebase
+    - docker
 
 code_coverage:
   stage: test
   script:
     - make coverage
   tags:
-    - gamebase
+    - docker
 
 code_coverage_report:
   stage: test
@@ -55,7 +55,7 @@ code_coverage_report:
     paths:
       - coverage.html
   tags:
-    - gamebase
+    - docker
 
 lint_code:
   stage: test
@@ -63,7 +63,7 @@ lint_code:
     - make lint
   allow_failure: true
   tags:
-    - gamebase
+    - docker
 
 build:
   stage: build
@@ -73,7 +73,7 @@ build:
     paths:
     - out
   tags:
-    - gamebase
+    - docker
 
 deploy_server:
   stage: deploy
