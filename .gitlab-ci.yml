@@ -22,28 +22,28 @@ unit_tests:
   script:
     - make test
   tags:
-    - ganebase
+    - gamebase
 
 race_detector:
   stage: test
   script:
     - make race
   tags:
-    - ganebase
+    - gamebase
 
 memory_sanitizer:
   stage: test
   script:
     - make msan
   tags:
-    - ganebase
+    - gamebase
 
 code_coverage:
   stage: test
   script:
     - make coverage
   tags:
-    - ganebase
+    - gamebase
 
 code_coverage_report:
   stage: test
@@ -55,7 +55,7 @@ code_coverage_report:
     paths:
       - coverage.html
   tags:
-    - ganebase
+    - gamebase
 
 lint_code:
   stage: test
@@ -63,7 +63,7 @@ lint_code:
     - make lint
   allow_failure: true
   tags:
-    - ganebase
+    - gamebase
 
 build:
   stage: build
@@ -73,7 +73,7 @@ build:
     paths:
     - out
   tags:
-    - ganebase
+    - gamebase
 
 deploy_server:
   stage: deploy
