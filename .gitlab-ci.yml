@@ -80,6 +80,7 @@ deploy_server:
   before_script:
     - sleep 1
   script:
+    - screen -S backend -X stuff ^C
     - screen -dmS backend bash -c "env GIN_MODE=release PORT=42069 out/server; while true; do sleep 1; done"
   only:
     - master
@@ -88,6 +89,8 @@ deploy_server:
 
 pages:
   stage: deploy
+  before_script:
+    - sleep 1
   script:
     - mkdir public
     - cp coverage.html public
