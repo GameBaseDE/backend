@@ -80,7 +80,7 @@ deploy_server:
   before_script:
     - sleep 1
   script:
-    - screen -S backend -X stuff ^C
+    - screen -S backend -X stuff ^C || true
     - screen -dmS backend bash -c "env GIN_MODE=release PORT=42069 out/server; while true; do sleep 1; done"
   only:
     - master
