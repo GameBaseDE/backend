@@ -11,7 +11,6 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	ptr "k8s.io/utils/pointer"
-	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -41,75 +40,13 @@ func main() {
 	router.DELETE("/api/destroy", destroyByQuery)
 	router.DELETE("/api/destroy/:id", destroyByParam)
 
-	// Listen and serve on 0.0.0.0:8080
-	if router.Run(":8080") != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "80"
+	}
+
+	if router.Run(":"+port) != nil {
 		println("Could not start the server")
-	}
-}
-
-func start(c *gin.Context) {
-	id := c.Param("id")
-	createDep("demo-deploymente" + id)
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func stop(c *gin.Context) {
-	id := c.Param("id")
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func restart(c *gin.Context) {
-	id := c.Param("id")
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func destroyByQuery(c *gin.Context) {
-	id := c.Query("id")
-	destroy(id, c)
-}
-
-func destroyByParam(c *gin.Context) {
-	id := c.Param("id")
-	destroy(id, c)
-}
-
-func destroy(id string, c *gin.Context) {
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func deploy(c *gin.Context) {
-	var body DeployContainerRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "message": body})
-}
-
-func status(c *gin.Context) {
-	id, exists := c.GetQuery("id")
-	if exists {
-		msg := QueryContainerRequest{id, "test", []uint16{1, 2}, 42}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": msg})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error", "message": nil})
 	}
 }
 
