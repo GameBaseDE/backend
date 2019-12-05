@@ -14,7 +14,7 @@ stages:
   - build
   - deploy
 
-make dependencies:
+make dependencies: # pull cache, update dependencies, push cache
   cache:
     # inherit all global cache settings
     <<: *global_cache
@@ -23,10 +23,11 @@ make dependencies:
   stage: dependencies
   script:
     - make dep
-    - ls -l
   tags:
     - GameBase
     - docker
+
+# --- tests begin here (only pull cache) ---
 
 unit_tests:
   stage: test
@@ -81,6 +82,8 @@ lint_code:
   tags:
     - GameBase
     - docker
+
+# --- tests end ---
 
 build:
   stage: build
