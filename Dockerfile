@@ -4,3 +4,5 @@ ENV GIN_MODE release
 COPY out/server server
 
 CMD ["./server"]
+
+EXPOSE 42096
