@@ -114,6 +114,7 @@ deploy dev:
   before_script:
     - sleep 1
   script:
+    - ls
     - docker build -t gamebase-backend-dev .
     - docker rm gamebase-backend-dev
     - docker run -d --restart unless-stopped -p 42069:8080 --name gamebase-backend-dev gamebase-backend-dev

@@ -4,4 +4,4 @@ ENV GIN_MODE release
 
 COPY out/server server
 
-RUN ./server
+CMD ["./server"]
