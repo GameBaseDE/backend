@@ -1,5 +1,13 @@
 image: dregistry.gahr.dev/ci-go-runner
 
+# Keep vendor dependencies between jobs (results in lower build times)
+cache: &global_cache
+  untracked: true
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+  policy: pull
+
 stages:
   - dependencies
   - test
@@ -7,6 +15,11 @@ stages:
   - deploy
 
 make dependencies:
+  cache:
+    # inherit all global cache settings
+    <<: *global_cache
+    # override the policy
+    policy: pull-push
   stage: dependencies
   script:
     - make dep
@@ -14,10 +27,6 @@ make dependencies:
   tags:
     - GameBase
     - docker
-
-before_script:
-  - cd $CI_PROJECT_DIR
-  - make dep
 
 unit_tests:
   stage: test
