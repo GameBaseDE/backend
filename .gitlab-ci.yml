@@ -1,51 +1,67 @@
 image: dregistry.gahr.dev/ci-go-runner
 
-cache:
+# Keep vendor dependencies between jobs (results in lower build times)
+cache: &global_cache
+  untracked: true
+  key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - /apt-cache
-    - /go/src/github.com
-    - /go/src/golang.org
-    - /go/src/google.golang.org
-    - /go/src/gopkg.in
+    - vendor/
+  policy: pull
 
 stages:
+  - dependencies
   - test
   - build
   - deploy
 
-before_script:
-  - cd $CI_PROJECT_DIR
-  - make dep
+make dependencies: # pull cache, update dependencies, push cache
+  cache:
+    # inherit all global cache settings
+    <<: *global_cache
+    # override the policy
+    policy: pull-push
+  stage: dependencies
+  script:
+    - make dep
+  tags:
+    - GameBase
+    - docker
 
-unit_tests:
+# --- tests begin here (only pull cache) ---
+
+unit tests:
   stage: test
   script:
     - make test
   tags:
+    - GameBase
     - docker
 
-race_detector:
+race detector:
   stage: test
   script:
     - make race
   tags:
+    - GameBase
     - docker
 
-memory_sanitizer:
+memory sanitizer:
   stage: test
   script:
     - make msan
   tags:
+    - GameBase
     - docker
 
-code_coverage:
+code coverage:
   stage: test
   script:
     - make coverage
   tags:
+    - GameBase
     - docker
 
-code_coverage_report:
+code coverage report:
   stage: test
   script:
     - make coverhtml
@@ -55,15 +71,19 @@ code_coverage_report:
     paths:
       - coverage.html
   tags:
+    - GameBase
     - docker
 
-lint_code:
+lint code:
   stage: test
   script:
     - make lint
   allow_failure: true
   tags:
+    - GameBase
     - docker
+
+# --- tests end ---
 
 build:
   stage: build
@@ -73,24 +93,37 @@ build:
     paths:
     - out
   tags:
+    - GameBase
     - docker
 
-deploy_server:
+deploy master:
   stage: deploy
-  before_script:
-    - sleep 1
   script:
-    - screen -S backend -X stuff ^C || true
-    - screen -dmS backend bash -c "env GIN_MODE=release PORT=42069 out/server; while true; do sleep 1; done"
+    - docker build -t gamebase-backend-live .
+    - docker stop gamebase-backend-live || true
+    - docker rm gamebase-backend-live || true
+    - docker run -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
   only:
     - master
   tags:
+    - GameBase
+    - shell
+
+deploy dev:
+  stage: deploy
+  script:
+    - docker build -t gamebase-backend-dev .
+    - docker stop gamebase-backend-dev || true
+    - docker rm gamebase-backend-dev || true
+    - docker run -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
+  except:
+    - master
+  tags:
+    - GameBase
     - shell
 
 pages:
   stage: deploy
-  before_script:
-    - sleep 1
   script:
     - mkdir public
     - cp coverage.html public

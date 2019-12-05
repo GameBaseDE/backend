@@ -13,10 +13,10 @@ lint: ## Lint the files
 test: ## Run unittests
 	@go test -short ${PKG_LIST}
 
-race: dep ## Run data race detector
+race: ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
-msan: dep ## Run memory sanitizer
+msan: ## Run memory sanitizer
 	@go test -msan -short ${PKG_LIST}
 
 coverage: ## Generate global code coverage report
@@ -28,10 +28,9 @@ coverhtml: ## Generate global code coverage report in HTML
 	bash tools/coverage.sh html;
 
 dep: ## Get the dependencies
-	go env
 	@go get -v -d ./...
 
-build: dep ## Build the binary file
+build: ## Build the binary file
 	@go build -i -v -o out/server
 
 clean: ## Remove previous build
