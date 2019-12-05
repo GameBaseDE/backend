@@ -1,17 +1,19 @@
 image: dregistry.gahr.dev/ci-go-runner
 
-cache:
-  paths:
-    - /apt-cache
-    - /go/src/github.com
-    - /go/src/golang.org
-    - /go/src/google.golang.org
-    - /go/src/gopkg.in
-
 stages:
+  - dependencies
   - test
   - build
   - deploy
+
+make dependencies:
+  stage: dependencies
+  script:
+    - make dep
+    - ls -l
+  tags:
+    - GameBase
+    - docker
 
 before_script:
   - cd $CI_PROJECT_DIR
@@ -22,6 +24,7 @@ unit_tests:
   script:
     - make test
   tags:
+    - GameBase
     - docker
 
 race_detector:
@@ -29,6 +32,7 @@ race_detector:
   script:
     - make race
   tags:
+    - GameBase
     - docker
 
 memory_sanitizer:
@@ -36,6 +40,7 @@ memory_sanitizer:
   script:
     - make msan
   tags:
+    - GameBase
     - docker
 
 code_coverage:
@@ -43,6 +48,7 @@ code_coverage:
   script:
     - make coverage
   tags:
+    - GameBase
     - docker
 
 code_coverage_report:
@@ -55,6 +61,7 @@ code_coverage_report:
     paths:
       - coverage.html
   tags:
+    - GameBase
     - docker
 
 lint_code:
@@ -63,6 +70,7 @@ lint_code:
     - make lint
   allow_failure: true
   tags:
+    - GameBase
     - docker
 
 build:
@@ -73,6 +81,7 @@ build:
     paths:
     - out
   tags:
+    - GameBase
     - docker
 
 deploy_server:
@@ -85,6 +94,7 @@ deploy_server:
   only:
     - master
   tags:
+    - GameBase
     - shell
 
 pages:
