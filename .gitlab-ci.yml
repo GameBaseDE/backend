@@ -29,7 +29,7 @@ make dependencies: # pull cache, update dependencies, push cache
 
 # --- tests begin here (only pull cache) ---
 
-unit_tests:
+unit tests:
   stage: test
   script:
     - make test
@@ -37,7 +37,7 @@ unit_tests:
     - GameBase
     - docker
 
-race_detector:
+race detector:
   stage: test
   script:
     - make race
@@ -45,7 +45,7 @@ race_detector:
     - GameBase
     - docker
 
-memory_sanitizer:
+memory sanitizer:
   stage: test
   script:
     - make msan
@@ -53,7 +53,7 @@ memory_sanitizer:
     - GameBase
     - docker
 
-code_coverage:
+code coverage:
   stage: test
   script:
     - make coverage
@@ -61,7 +61,7 @@ code_coverage:
     - GameBase
     - docker
 
-code_coverage_report:
+code coverage report:
   stage: test
   script:
     - make coverhtml
@@ -74,7 +74,7 @@ code_coverage_report:
     - GameBase
     - docker
 
-lint_code:
+lint code:
   stage: test
   script:
     - make lint
@@ -96,7 +96,7 @@ build:
     - GameBase
     - docker
 
-deploy_server:
+deploy master:
   stage: deploy
   before_script:
     - sleep 1
@@ -104,6 +104,20 @@ deploy_server:
     - screen -S backend -X stuff ^C || true
     - screen -dmS backend bash -c "env GIN_MODE=release PORT=42069 out/server; while true; do sleep 1; done"
   only:
+    - master
+  tags:
+    - GameBase
+    - shell
+
+deploy dev:
+  stage: deploy
+  before_script:
+    - sleep 1
+  script:
+    - docker build -t gamebase-backend-dev .
+    - docker rm gamebase-backend-dev
+    - docker run -d --restart unless-stopped -p 42069:8080 --name gamebase-backend-dev gamebase-backend-dev
+  except:
     - master
   tags:
     - GameBase
