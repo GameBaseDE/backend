@@ -1,6 +1,6 @@
 FROM golang:latest
 
-EXPOSE 8080
+EXPOSE 80
 COPY out/server server
 
 CMD ["./server"]
