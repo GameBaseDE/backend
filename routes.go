@@ -5,67 +5,78 @@ import (
 	"net/http"
 )
 
-func start(c *gin.Context) {
+func start(c *gin.Context, api API) {
 	id := c.Param("id")
 	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 	}
 }
 
-func stop(c *gin.Context) {
+func stop(c *gin.Context, api API) {
 	id := c.Param("id")
 	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 	}
 }
 
-func restart(c *gin.Context) {
+func restart(c *gin.Context, api API) {
 	id := c.Param("id")
 	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 	}
 }
 
-func destroyByQuery(c *gin.Context) {
+func destroyByQuery(c *gin.Context, api API) {
 	id := c.Query("id")
-	destroy(id, c)
+	destroy(id, c, api)
 }
 
-func destroyByParam(c *gin.Context) {
+func destroyByParam(c *gin.Context, api API) {
 	id := c.Param("id")
-	destroy(id, c)
+	destroy(id, c, api)
 }
 
-func destroy(id string, c *gin.Context) {
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
+func destroy(id string, c *gin.Context, api API) {
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
 	}
+
+	if err := api.Destroy(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 }
 
-func deploy(c *gin.Context) {
+func deploy(c *gin.Context, api API) {
 	var body DeployContainerRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "message": body})
+	if result, err := api.Deploy(body); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	} else {
+		h := gin.H{"status": "ok"}
+		h["message"] = result
+		c.JSON(http.StatusCreated, h)
+	}
 }
 
-func status(c *gin.Context) {
+func status(c *gin.Context, api API) {
 	id, exists := c.GetQuery("id")
 	if exists {
-		msg := QueryContainerRequest{id, "test", []uint16{1, 2}, 42}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": msg})
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok", "message": id})
 	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error", "message": nil})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "error"})
 	}
 }
