@@ -10,6 +10,7 @@ cache: &global_cache
 
 stages:
   - dependencies
+  - test
   - build
   - deploy
 
@@ -28,7 +29,7 @@ make dependencies: # pull cache, update dependencies, push cache
 
 # --- tests begin here (only pull cache) ---
 
-unit tests:
+.unit tests:
   stage: test
   script:
     - make test
@@ -36,7 +37,7 @@ unit tests:
     - GameBase
     - docker
 
-race detector:
+.race detector:
   stage: test
   script:
     - make race
@@ -44,7 +45,7 @@ race detector:
     - GameBase
     - docker
 
-memory sanitizer:
+.memory sanitizer:
   stage: test
   script:
     - make msan
@@ -52,7 +53,7 @@ memory sanitizer:
     - GameBase
     - docker
 
-code coverage:
+.code coverage:
   stage: test
   script:
     - make coverage
@@ -60,7 +61,7 @@ code coverage:
     - GameBase
     - docker
 
-code coverage report:
+.code coverage report:
   stage: test
   script:
     - make coverhtml
@@ -73,7 +74,7 @@ code coverage report:
     - GameBase
     - docker
 
-lint code:
+.lint code:
   stage: test
   script:
     - make lint
