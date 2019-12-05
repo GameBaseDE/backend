@@ -1,5 +1,4 @@
-FROM golang:1.11-alpine
-
+FROM golang:latest
 ENV GIN_MODE release
 
 COPY out/server server
