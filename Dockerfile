@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM golang:1.11-alpine
 
 ENV GIN_MODE release
 
