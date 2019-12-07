@@ -3,9 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/gin-gonic/gin"
-	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"os"
@@ -20,7 +18,7 @@ type DeployContainerRequest struct {
 
 func main() {
 	deploymentsClient := initkube()
-	api := API{Client: deploymentsClient}
+	api := NewAPI(deploymentsClient)
 
 	router := gin.Default()
 
@@ -34,7 +32,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "80"
 	}
 
 	if router.Run(":"+port) != nil {
@@ -42,7 +40,7 @@ func main() {
 	}
 }
 
-func initkube() v1.DeploymentInterface {
+func initkube() *kubernetes.Clientset {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -59,5 +57,5 @@ func initkube() v1.DeploymentInterface {
 
 	// create the clientset
 	clientset := kubernetes.NewForConfigOrDie(config)
-	return clientset.AppsV1().Deployments(apiv1.NamespaceDefault)
+	return clientset
 }
