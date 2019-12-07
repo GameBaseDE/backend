@@ -1,0 +1,136 @@
+image: dregistry.gahr.dev/ci-go-runner
+
+# Keep vendor dependencies between jobs (results in lower build times)
+cache: &global_cache
+  untracked: true
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+  policy: pull
+
+stages:
+  - dependencies
+  - test
+  - build
+  - deploy
+
+make dependencies: # pull cache, update dependencies, push cache
+  cache:
+    # inherit all global cache settings
+    <<: *global_cache
+    # override the policy
+    policy: pull-push
+  stage: dependencies
+  script:
+    - make dep
+  tags:
+    - GameBase
+    - docker
+
+# --- tests begin here (only pull cache) ---
+
+unit tests:
+  stage: test
+  script:
+    - make test
+  tags:
+    - GameBase
+    - docker
+
+race detector:
+  stage: test
+  script:
+    - make race
+  tags:
+    - GameBase
+    - docker
+
+memory sanitizer:
+  stage: test
+  script:
+    - make msan
+  tags:
+    - GameBase
+    - docker
+
+code coverage:
+  stage: test
+  script:
+    - make coverage
+  tags:
+    - GameBase
+    - docker
+
+code coverage report:
+  stage: test
+  script:
+    - make coverhtml
+  only:
+  - master
+  artifacts:
+    paths:
+      - coverage.html
+  tags:
+    - GameBase
+    - docker
+
+lint code:
+  stage: test
+  script:
+    - make lint
+  allow_failure: true
+  tags:
+    - GameBase
+    - docker
+
+# --- tests end ---
+
+build:
+  stage: build
+  script:
+    - make
+  artifacts:
+    paths:
+    - out
+  tags:
+    - GameBase
+    - docker
+
+deploy master:
+  stage: deploy
+  script:
+    - docker build -t gamebase-backend-live .
+    - docker stop gamebase-backend-live || true
+    - docker rm gamebase-backend-live || true
+    - docker run -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
+  only:
+    - master
+  tags:
+    - GameBase
+    - shell
+
+deploy dev:
+  stage: deploy
+  script:
+    - docker build -t gamebase-backend-dev .
+    - docker stop gamebase-backend-dev || true
+    - docker rm gamebase-backend-dev || true
+    - docker run -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
+  except:
+    - master
+  tags:
+    - GameBase
+    - shell
+
+pages:
+  stage: deploy
+  script:
+    - mkdir public
+    - cp coverage.html public
+  artifacts:
+    paths:
+      - public/
+  only:
+    - master
+  tags:
+    - GameBase
