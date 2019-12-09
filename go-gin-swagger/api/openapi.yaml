@@ -1,0 +1,340 @@
+openapi: 3.0.0
+info:
+  contact:
+    email: gamebase@gahr.dev
+    url: https://gahr.dev
+  description: This is the REST API used as an communication layer between backend
+    and frontend.
+  title: GameBase Communication API
+  version: 1.0.0
+externalDocs:
+  description: Learn more about GameBase
+  url: https://gahr.dev
+servers:
+- description: SwaggerHub API Auto Mocking
+  url: https://virtserver.swaggerhub.com/humenius/GameBase-Comm-API/1.0.0
+tags:
+- description: REST API v1
+  name: api
+paths:
+  /api:
+    get:
+      operationId: getStatus
+      parameters:
+      - description: ID of the desired container
+        explode: true
+        in: query
+        name: id
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Successful operation
+        404:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Container not found
+      summary: Query status of a container
+      tags:
+      - api
+  /api/start/{id}:
+    get:
+      operationId: startContainer
+      parameters:
+      - description: ID of game server to start
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Start successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Start failed
+      summary: Start a game server/container
+      tags:
+      - api
+  /api/stop/{id}:
+    get:
+      operationId: stopContainer
+      parameters:
+      - description: ID of game server to stop
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Stop successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Stop failed
+      summary: Stop a game server/container
+      tags:
+      - api
+  /api/restart/{id}:
+    get:
+      operationId: restartContainer
+      parameters:
+      - description: ID of game server to restart
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Restart successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Restart failed
+      summary: Restart a game server/container
+      tags:
+      - api
+  /api/deploy:
+    post:
+      operationId: deployContainer
+      requestBody:
+        $ref: '#/components/requestBodies/GameServerDeployTemplate'
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Deployment successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Deployment failed
+        405:
+          description: Invalid input
+      summary: Deploy a game server based on POST body
+      tags:
+      - api
+  /api/configure:
+    post:
+      operationId: configureContainer
+      requestBody:
+        $ref: '#/components/requestBodies/GameServerConfigurationTemplate'
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerStatus'
+                type: array
+          description: Configuration successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Configuration failed
+        405:
+          description: Invalid input
+      summary: Configure a game server based on POST body
+      tags:
+      - api
+  /api/destroy/{id}:
+    delete:
+      operationId: deleteContainer
+      parameters:
+      - description: ID of game server to delete
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Deletion successful
+        500:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Deletion failed
+      summary: Delete deployment of game server
+      tags:
+      - api
+components:
+  requestBodies:
+    GameServerDeployTemplate:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GameServerDeployTemplate'
+      description: Game server template which will be used for server creation
+      required: true
+    GameServerConfigurationTemplate:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GameServerConfigurationTemplate'
+      description: Configuration for game server
+      required: true
+  schemas:
+    Exception:
+      properties:
+        id:
+          description: ID of container causing this exception
+          type: string
+        exception:
+          description: Short Exception code
+          type: string
+        details:
+          description: Detailed message of issue
+          type: string
+      required:
+      - details
+      - exception
+      - id
+      type: object
+    GameServerStatus:
+      example:
+        image: image
+        slots: 6
+        playerCount: 1
+        id: id
+        state:
+        - unknown
+        - unknown
+        ports:
+        - 0
+        - 0
+        map: map
+        mapRotation:
+        - mapRotation
+        - mapRotation
+        gameTag: gameTag
+      properties:
+        id:
+          description: ID of container
+          type: string
+        gameTag:
+          description: Indentifier of game
+          type: string
+        image:
+          description: Image used in Docker
+          type: string
+        state:
+          items:
+            default: unknown
+            enum:
+            - running
+            - restarting
+            - stopped
+            - error
+            - unknown
+            type: string
+          type: array
+        ports:
+          description: Ports used by game server
+          items:
+            format: int16
+            type: integer
+          type: array
+        slots:
+          description: Max. players allowed
+          type: integer
+        playerCount:
+          description: Current players on server
+          type: integer
+        map:
+          type: string
+        mapRotation:
+          items:
+            type: string
+          type: array
+      required:
+      - gameTag
+      - id
+      - image
+      - ports
+      - state
+      type: object
+    GameServerDeployTemplate:
+      example:
+        image: image
+        ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        image:
+          description: Docker image of game server
+          type: string
+        ownerId:
+          description: UUID of owner whom this server belongs to
+          format: uuid
+          type: string
+      type: object
+    GameServerConfigurationTemplate:
+      anyOf:
+      - $ref: '#/components/schemas/GameServerStatus'
+      - type: object

@@ -5,7 +5,7 @@ cache: &global_cache
   untracked: true
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - vendor/
+    - /go
   policy: pull
 
 stages:
@@ -112,6 +112,7 @@ deploy master:
 deploy dev:
   stage: deploy
   script:
+    - cp ~/.kube/config config
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
