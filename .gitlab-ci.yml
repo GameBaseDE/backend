@@ -115,7 +115,8 @@ deploy dev:
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - docker run -d --restart unless-stopped -p 42069:80 -e KUBECONFIG=$KUBECONFIG --name gamebase-backend-dev gamebase-backend-dev
+    - echo $KUBECONFIG
+    - docker run -d --restart unless-stopped -p 42069:80 -e KUBECONFIG=${KUBECONFIG} --name gamebase-backend-dev gamebase-backend-dev
   except:
     - master
   tags:
