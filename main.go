@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
@@ -21,6 +22,7 @@ type QueryContainerRequest struct {
 
 func main() {
 	router := gin.Default()
+	router.Use(cors.Default())
 
 	router.GET("/api", status)
 	router.GET("/api/start/:id", start)
