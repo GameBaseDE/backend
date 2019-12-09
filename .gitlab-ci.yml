@@ -5,7 +5,7 @@ cache: &global_cache
   untracked: true
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - vendor/
+    - /go
   policy: pull
 
 stages:
@@ -102,7 +102,7 @@ deploy master:
     - docker build -t gamebase-backend-live .
     - docker stop gamebase-backend-live || true
     - docker rm gamebase-backend-live || true
-    - docker run -d --restart unless-stopped -p 42070:80 -e KUBECONFIG="${KUBECONFIG}" --name gamebase-backend-live gamebase-backend-live
+    - docker run -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
   only:
     - master
   tags:
@@ -115,7 +115,7 @@ deploy dev:
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - docker run -d --restart unless-stopped -p 42069:80 -e KUBECONFIG="${KUBECONFIG}" --name gamebase-backend-dev gamebase-backend-dev
+    - docker run -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
   except:
     - master
   tags:
