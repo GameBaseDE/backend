@@ -1,10 +1,14 @@
 package main
 
 import (
+	"flag"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"os"
+	"path/filepath"
 )
 
 type DeployContainerRequest struct {
@@ -13,24 +17,20 @@ type DeployContainerRequest struct {
 	Slots uint16   `json:"slots"`
 }
 
-type QueryContainerRequest struct {
-	Id    string   `json:"id"`
-	Image string   `json:"image"`
-	Ports []uint16 `json:"ports"`
-	Slots uint16   `json:"slots"`
-}
-
 func main() {
+	deploymentsClient := initkube()
+	api := NewAPI(deploymentsClient)
+
 	router := gin.Default()
 	router.Use(cors.Default())
 
-	router.GET("/api", status)
-	router.GET("/api/start/:id", start)
-	router.GET("/api/stop/:id", stop)
-	router.GET("/api/restart/:id", restart)
-	router.POST("/api/deploy", deploy)
-	router.DELETE("/api/destroy", destroyByQuery)
-	router.DELETE("/api/destroy/:id", destroyByParam)
+	router.GET("/api", func(c *gin.Context) { status(c, api) })
+	router.GET("/api/start/:id", func(c *gin.Context) { start(c, api) })
+	router.GET("/api/stop/:id", func(c *gin.Context) { stop(c, api) })
+	router.GET("/api/restart/:id", func(c *gin.Context) { restart(c, api) })
+	router.POST("/api/deploy", func(c *gin.Context) { deploy(c, api) })
+	router.DELETE("/api/destroy", func(c *gin.Context) { destroyByQuery(c, api) })
+	router.DELETE("/api/destroy/:id", func(c *gin.Context) { destroyByParam(c, api) })
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -42,67 +42,22 @@ func main() {
 	}
 }
 
-func start(c *gin.Context) {
-	id := c.Param("id")
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+func initkube() *kubernetes.Clientset {
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-}
+	flag.Parse()
 
-func stop(c *gin.Context) {
-	id := c.Param("id")
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func restart(c *gin.Context) {
-	id := c.Param("id")
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func destroyByQuery(c *gin.Context) {
-	id := c.Query("id")
-	destroy(id, c)
-}
-
-func destroyByParam(c *gin.Context) {
-	id := c.Param("id")
-	destroy(id, c)
-}
-
-func destroy(id string, c *gin.Context) {
-	if id != "" {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error"})
-	}
-}
-
-func deploy(c *gin.Context) {
-	var body DeployContainerRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err.Error())
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "message": body})
-}
-
-func status(c *gin.Context) {
-	id, exists := c.GetQuery("id")
-	if exists {
-		msg := QueryContainerRequest{id, "test", []uint16{1, 2}, 42}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "message": msg})
-	} else {
-		c.JSON(http.StatusTeapot, gin.H{"status": "error", "message": nil})
-	}
+	// create the clientset
+	clientset := kubernetes.NewForConfigOrDie(config)
+	return clientset
 }
