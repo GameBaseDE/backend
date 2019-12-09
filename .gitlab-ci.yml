@@ -5,8 +5,11 @@ cache: &global_cache
   untracked: true
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - /go
+    - .cache
   policy: pull
+
+before_script:
+  - export GOPATH="$CI_PROJECT_DIR/.cache"
 
 stages:
   - dependencies
