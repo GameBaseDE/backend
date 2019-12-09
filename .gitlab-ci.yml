@@ -29,7 +29,7 @@ make dependencies: # pull cache, update dependencies, push cache
 
 # --- tests begin here (only pull cache) ---
 
-.unit tests:
+unit tests:
   stage: test
   script:
     - make test
@@ -37,7 +37,7 @@ make dependencies: # pull cache, update dependencies, push cache
     - GameBase
     - docker
 
-.race detector:
+race detector:
   stage: test
   script:
     - make race
@@ -45,7 +45,7 @@ make dependencies: # pull cache, update dependencies, push cache
     - GameBase
     - docker
 
-.memory sanitizer:
+memory sanitizer:
   stage: test
   script:
     - make msan
@@ -53,7 +53,7 @@ make dependencies: # pull cache, update dependencies, push cache
     - GameBase
     - docker
 
-.code coverage:
+code coverage:
   stage: test
   script:
     - make coverage
@@ -61,7 +61,7 @@ make dependencies: # pull cache, update dependencies, push cache
     - GameBase
     - docker
 
-.code coverage report:
+code coverage report:
   stage: test
   script:
     - make coverhtml
@@ -74,7 +74,7 @@ make dependencies: # pull cache, update dependencies, push cache
     - GameBase
     - docker
 
-.lint code:
+lint code:
   stage: test
   script:
     - make lint
@@ -115,7 +115,6 @@ deploy dev:
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - echo ${KUBECONFIG}
     - docker run -d --restart unless-stopped -p 42069:80 -e KUBECONFIG=${KUBECONFIG} --name gamebase-backend-dev gamebase-backend-dev
   except:
     - master
