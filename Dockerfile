@@ -1,7 +1,9 @@
 FROM golang:latest
 
+RUN env
+COPY ~/.kube /root/.kube
+
 EXPOSE 80
 COPY out/server server
 
-RUN mkdir /root/.kube && echo $DF_KUBECONFIG > /root/.kube/config
 CMD ["./server"]
