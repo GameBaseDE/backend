@@ -112,7 +112,7 @@ deploy master:
 deploy dev:
   stage: deploy
   script:
-    - cat ~/.kube/config
+    - cp ~/.kube/config config
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true

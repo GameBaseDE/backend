@@ -1,7 +1,7 @@
 FROM golang:latest
 
 RUN env
-COPY ~/.kube /root/.kube
+COPY config /root/.kube/config
 
 EXPOSE 80
 COPY out/server server
