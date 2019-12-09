@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -21,6 +22,7 @@ func main() {
 	api := NewAPI(deploymentsClient)
 
 	router := gin.Default()
+	router.Use(cors.Default())
 
 	router.GET("/api", func(c *gin.Context) { status(c, api) })
 	router.GET("/api/start/:id", func(c *gin.Context) { start(c, api) })
