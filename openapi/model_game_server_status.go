@@ -21,7 +21,7 @@ type GameServerStatus struct {
 	// Image used in Docker
 	Image string `json:"image"`
 
-	State []string `json:"state"`
+	State int32 `json:"status"`
 
 	// Ports used by game server
 	Ports []int32 `json:"ports"`

@@ -11,12 +11,20 @@
 package openapi
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	appsv1 "k8s.io/api/apps/v1"
+	"net/http"
 )
 
 var api = NewAPI()
+
+func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
+	return &GameServerStatus{
+		Id:    deployment.Name,
+		Image: deployment.Spec.Template.Spec.Containers[0].Image,
+		State: deployment.Status.Replicas,
+	}
+}
 
 // ConfigureContainer - Configure a game server based on POST body
 func ConfigureContainer(c *gin.Context) {
@@ -50,11 +58,11 @@ func DeployContainer(c *gin.Context) {
 		return
 	}
 
-	if id, err := api.Deploy(request); err != nil {
+	if result, err := api.Deploy(request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	} else {
 		h := gin.H{"status": "ok"}
-		h["id"] = id
+		h["message"] = AsGameServerStatus(result)
 		c.JSON(http.StatusCreated, h)
 	}
 }
@@ -70,7 +78,7 @@ func GetStatus(c *gin.Context) {
 
 	if result, err := api.Status(id); err == nil {
 		h := gin.H{"status": "ok"}
-		h["message"] = result
+		h["message"] = AsGameServerStatus(result)
 		c.JSON(http.StatusOK, h)
 		return
 	}
@@ -93,7 +101,7 @@ func RestartContainer(c *gin.Context) {
 
 	if result, err := api.Restart(id); err == nil {
 		h := gin.H{"status": "ok"}
-		h["message"] = result
+		h["message"] = AsGameServerStatus(result)
 		c.JSON(http.StatusAccepted, h)
 	} else {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})

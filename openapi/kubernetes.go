@@ -194,7 +194,7 @@ func (api API) Rescale(deploymentName string, replicas int32) (*v1.Scale, error)
 func (api API) Deploy(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
 	deployment := deploymentTemplate()
 	deployment.Name = request.Id
-	container := deployment.Spec.Template.Spec.Containers[0]
+	container := &deployment.Spec.Template.Spec.Containers[0]
 	container.Image = request.Image
 	container.Ports = []apiv1.ContainerPort{}
 
@@ -205,8 +205,7 @@ func (api API) Deploy(request GameServerConfigurationTemplate) (*appsv1.Deployme
 		})
 	}
 
-	val, err := api.GetDeploymentClient().Create(&deployment)
-	return val, err
+	return api.GetDeploymentClient().Create(&deployment)
 }
 
 func (api API) Configure(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
