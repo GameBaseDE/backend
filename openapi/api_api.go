@@ -78,6 +78,11 @@ func GetStatus(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "error"})
 }
 
+// ListImages - Get a list of all available game server images
+func ListImages(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{})
+}
+
 // RestartContainer - Restart a game server/container
 func RestartContainer(c *gin.Context) {
 	id := c.Param("id")

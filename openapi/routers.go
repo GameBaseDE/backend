@@ -19,11 +19,11 @@ import (
 // Route is the information for every URI.
 type Route struct {
 	// Name is the name of this Route.
-	Name        string
+	Name string
 	// Method is the string for the HTTP method. ex) GET, POST etc..
-	Method      string
+	Method string
 	// Pattern is the pattern of the URI.
-	Pattern     string
+	Pattern string
 	// HandlerFunc is the handler function of this route.
 	HandlerFunc gin.HandlerFunc
 }
@@ -59,56 +59,63 @@ var routes = Routes{
 	{
 		"Index",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/",
+		"/",
 		Index,
 	},
 
 	{
 		"ConfigureContainer",
 		http.MethodPost,
-		"/humenius/GameBase-Comm-API/1.0.0/api/configure",
+		"/api/configure",
 		ConfigureContainer,
 	},
 
 	{
 		"DeleteContainer",
 		http.MethodDelete,
-		"/humenius/GameBase-Comm-API/1.0.0/api/destroy/:id",
+		"/api/destroy/:id",
 		DeleteContainer,
 	},
 
 	{
 		"DeployContainer",
 		http.MethodPost,
-		"/humenius/GameBase-Comm-API/1.0.0/api/deploy",
+		"/api/deploy",
 		DeployContainer,
 	},
 
 	{
 		"GetStatus",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api",
+		"/api",
 		GetStatus,
+	},
+
+	{
+		"ListImages",
+		http.MethodGet,
+		"/api/listimages",
+		ListImages,
 	},
 
 	{
 		"RestartContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/restart/:id",
+		"/api/restart/:id",
 		RestartContainer,
 	},
 
 	{
 		"StartContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/start/:id",
+		"/api/start/:id",
 		StartContainer,
 	},
 
 	{
 		"StopContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/stop/:id",
+		"/api/stop/:id",
 		StopContainer,
 	},
 }
