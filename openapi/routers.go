@@ -13,6 +13,7 @@ package openapi
 import (
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,6 +35,7 @@ type Routes []Route
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
 	router := gin.Default()
+	router.Use(cors.Default())
 	for _, route := range routes {
 		switch route.Method {
 		case http.MethodGet:
