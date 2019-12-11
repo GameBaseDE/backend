@@ -13,17 +13,18 @@ package openapi
 import (
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 // Route is the information for every URI.
 type Route struct {
 	// Name is the name of this Route.
-	Name        string
+	Name string
 	// Method is the string for the HTTP method. ex) GET, POST etc..
-	Method      string
+	Method string
 	// Pattern is the pattern of the URI.
-	Pattern     string
+	Pattern string
 	// HandlerFunc is the handler function of this route.
 	HandlerFunc gin.HandlerFunc
 }
@@ -34,6 +35,7 @@ type Routes []Route
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
 	router := gin.Default()
+	router.Use(cors.Default())
 	for _, route := range routes {
 		switch route.Method {
 		case http.MethodGet:
@@ -59,56 +61,63 @@ var routes = Routes{
 	{
 		"Index",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/",
+		"/",
 		Index,
 	},
 
 	{
 		"ConfigureContainer",
 		http.MethodPost,
-		"/humenius/GameBase-Comm-API/1.0.0/api/configure",
+		"/api/configure",
 		ConfigureContainer,
 	},
 
 	{
 		"DeleteContainer",
 		http.MethodDelete,
-		"/humenius/GameBase-Comm-API/1.0.0/api/destroy/:id",
+		"/api/destroy/:id",
 		DeleteContainer,
 	},
 
 	{
 		"DeployContainer",
 		http.MethodPost,
-		"/humenius/GameBase-Comm-API/1.0.0/api/deploy",
+		"/api/deploy",
 		DeployContainer,
 	},
 
 	{
 		"GetStatus",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api",
+		"/api",
 		GetStatus,
+	},
+
+	{
+		"ListImages",
+		http.MethodGet,
+		"/api/listimages",
+		ListImages,
 	},
 
 	{
 		"RestartContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/restart/:id",
+		"/api/restart/:id",
 		RestartContainer,
 	},
 
 	{
 		"StartContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/start/:id",
+		"/api/start/:id",
 		StartContainer,
 	},
 
 	{
 		"StopContainer",
 		http.MethodGet,
-		"/humenius/GameBase-Comm-API/1.0.0/api/stop/:id",
+		"/api/stop/:id",
 		StopContainer,
 	},
 }

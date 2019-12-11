@@ -11,8 +11,10 @@ externalDocs:
   description: Learn more about GameBase
   url: https://gahr.dev
 servers:
-- description: SwaggerHub API Auto Mocking
-  url: https://virtserver.swaggerhub.com/humenius/GameBase-Comm-API/1.0.0
+- description: Dev Backend version of REST service
+  url: https://backend.dev.gahr.dev/
+- description: Live Backend version of REST service
+  url: https://backend.gamebase.gahr.dev/
 tags:
 - description: REST API v1
   name: api
@@ -20,22 +22,13 @@ paths:
   /api:
     get:
       operationId: getStatus
-      parameters:
-      - description: ID of the desired container
-        explode: true
-        in: query
-        name: id
-        required: true
-        schema:
-          type: string
-        style: form
       responses:
         200:
           content:
             application/json:
               schema:
                 items:
-                  $ref: '#/components/schemas/GameServerStatus'
+                  $ref: '#/components/schemas/GameServerStatusArray'
                 type: array
           description: Successful operation
         404:
@@ -46,7 +39,7 @@ paths:
                   $ref: '#/components/schemas/Exception'
                 type: array
           description: Container not found
-      summary: Query status of a container
+      summary: Query status of all deployments
       tags:
       - api
   /api/start/{id}:
@@ -225,6 +218,29 @@ paths:
       summary: Delete deployment of game server
       tags:
       - api
+  /api/listimages:
+    get:
+      operationId: listImages
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GameServerImages'
+                type: array
+          description: Query successful
+        503:
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Exception'
+                type: array
+          description: Query failed
+      summary: Get a list of all available game server images
+      tags:
+      - api
 components:
   requestBodies:
     GameServerDeployTemplate:
@@ -242,6 +258,10 @@ components:
       description: Configuration for game server
       required: true
   schemas:
+    GameServerStatusArray:
+      items:
+        $ref: '#/components/schemas/GameServerStatus'
+      type: array
     Exception:
       properties:
         id:
@@ -338,3 +358,15 @@ components:
       anyOf:
       - $ref: '#/components/schemas/GameServerStatus'
       - type: object
+    GameServerImages:
+      example:
+        images:
+        - images
+        - images
+      properties:
+        images:
+          description: List of images
+          items:
+            type: string
+          type: array
+      type: object
