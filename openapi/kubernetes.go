@@ -217,3 +217,11 @@ func (api API) Configure(request GameServerConfigurationTemplate) (*appsv1.Deplo
 
 	return api.Deploy(request)
 }
+
+func (api API) List() ([]appsv1.Deployment, error) {
+	if result, err := api.GetDeploymentClient().List(metav1.ListOptions{}); err != nil {
+		return []appsv1.Deployment{}, err
+	} else {
+		return result.Items, nil
+	}
+}

@@ -67,13 +67,20 @@ func DeployContainer(c *gin.Context) {
 	}
 }
 
-// GetStatus - Query status of a container
+// GetStatus - Query status of all deployments
 func GetStatus(c *gin.Context) {
-	id, exists := c.GetQuery("id")
+	id, _ := c.GetQuery("id")
 
-	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "error"})
-		return
+	if id == "" {
+		if result, err := api.List(); err == nil {
+			h := make([]GameServerStatus, 0)
+			for _, status := range result {
+				h = append(h, *AsGameServerStatus(&status))
+			}
+
+			c.JSON(http.StatusOK, h)
+			return
+		}
 	}
 
 	if result, err := api.Status(id); err == nil {

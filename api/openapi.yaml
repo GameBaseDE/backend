@@ -22,22 +22,13 @@ paths:
   /api:
     get:
       operationId: getStatus
-      parameters:
-      - description: ID of the desired container
-        explode: true
-        in: query
-        name: id
-        required: true
-        schema:
-          type: string
-        style: form
       responses:
         200:
           content:
             application/json:
               schema:
                 items:
-                  $ref: '#/components/schemas/GameServerStatus'
+                  $ref: '#/components/schemas/GameServerStatusArray'
                 type: array
           description: Successful operation
         404:
@@ -48,7 +39,7 @@ paths:
                   $ref: '#/components/schemas/Exception'
                 type: array
           description: Container not found
-      summary: Query status of a container
+      summary: Query status of all deployments
       tags:
       - api
   /api/start/{id}:
@@ -267,6 +258,10 @@ components:
       description: Configuration for game server
       required: true
   schemas:
+    GameServerStatusArray:
+      items:
+        $ref: '#/components/schemas/GameServerStatus'
+      type: array
     Exception:
       properties:
         id:
