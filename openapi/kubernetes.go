@@ -1,7 +1,8 @@
-package main
+package openapi
 
 import (
 	"errors"
+	"flag"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -10,9 +11,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	ptr "k8s.io/utils/pointer"
-	"math/rand"
-	"strconv"
+	"path/filepath"
 )
 
 func deploymentTemplate() appsv1.Deployment {
@@ -53,15 +55,34 @@ func deploymentTemplate() appsv1.Deployment {
 	}
 }
 
+func initkube() *kubernetes.Clientset {
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// create the clientset
+	clientset := kubernetes.NewForConfigOrDie(config)
+	return clientset
+}
+
 type API struct {
 	Client            *kubernetes.Clientset
-	Deployments       *map[uint64]string
 	StandardNamespace string
 }
 
-func NewAPI(client *kubernetes.Clientset) API {
-	deployments := make(map[uint64]string)
-	api := API{Client: client, Deployments: &deployments, StandardNamespace: "test"}
+func NewAPI() API {
+	client := initkube()
+	api := API{Client: client, StandardNamespace: "test"}
 	api.GetNamespaceOrDie()
 	return api
 }
@@ -76,35 +97,6 @@ func (api API) GetNamespaceClient() coreV1.NamespaceInterface {
 
 func (api API) GetDeploymentClient() appsV1.DeploymentInterface {
 	return api.Client.AppsV1().Deployments(api.StandardNamespace)
-}
-
-func (api API) GetDeploymentName(id uint64) string {
-	deployments := *api.Deployments
-	return deployments[id]
-}
-
-func (api API) AddDeployment(uid string) uint64 {
-	deployments := *api.Deployments
-
-	id := rand.Uint64()
-	for isDuplicate := true; isDuplicate; id = rand.Uint64() {
-		for k := range deployments {
-			if k == id {
-				isDuplicate = true
-				break
-			}
-		}
-
-		isDuplicate = false
-	}
-
-	deployments[id] = uid
-	return id
-}
-
-func (api API) RemoveDeployment(id uint64) {
-	deployments := *api.Deployments
-	delete(deployments, id)
 }
 
 func (api API) GetNamespaceOrDie() apiv1.Namespace {
@@ -124,36 +116,31 @@ func (api API) GetNamespaceOrDie() apiv1.Namespace {
 	}
 }
 
-func (api API) Destroy(id uint64) error {
-	deploymentName := api.GetDeploymentName(id)
+func (api API) Destroy(deploymentName string) error {
 	deletePolicy := metav1.DeletePropagationForeground
 	return api.GetDeploymentClient().Delete(deploymentName, &metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	})
 }
 
-func (api API) Status(id uint64) (*appsv1.Deployment, error) {
-	deploymentName := api.GetDeploymentName(id)
-
+func (api API) Status(deploymentName string) (*appsv1.Deployment, error) {
 	if deploymentName == "" {
-		return nil, errors.New("Deployment with id " + strconv.FormatUint(id, 10) + " not found")
+		return nil, errors.New("Deployment with id " + deploymentName + " not found")
 	}
 
 	return api.GetDeploymentClient().Get(deploymentName, metav1.GetOptions{})
 }
 
-func (api API) Start(id uint64) (*v1.Scale, error) {
-	return api.Rescale(id, 1)
+func (api API) Start(deploymentName string) (*v1.Scale, error) {
+	return api.Rescale(deploymentName, 1)
 }
 
-func (api API) Stop(id uint64) (*v1.Scale, error) {
-	return api.Rescale(id, 0)
+func (api API) Stop(deploymentName string) (*v1.Scale, error) {
+	return api.Rescale(deploymentName, 0)
 }
 
-func (api API) Restart(id uint64) (*appsv1.Deployment, error) {
-	deploymentName := api.GetDeploymentName(id)
-
-	if deployment, err := api.Status(id); err != nil {
+func (api API) Restart(deploymentName string) (*appsv1.Deployment, error) {
+	if deployment, err := api.Status(deploymentName); err != nil {
 		return nil, err
 	} else {
 		if deployment.Status.Replicas == 0 {
@@ -161,7 +148,7 @@ func (api API) Restart(id uint64) (*appsv1.Deployment, error) {
 		}
 	}
 
-	if _, err := api.Stop(id); err != nil {
+	if _, err := api.Stop(deploymentName); err != nil {
 		return nil, err
 	}
 
@@ -171,7 +158,7 @@ func (api API) Restart(id uint64) (*appsv1.Deployment, error) {
 			if event.Type != watch2.Error {
 				deployment := event.Object.(*appsv1.Deployment)
 				if deployment.Name == deploymentName {
-					if deployment, err := api.Status(id); err != nil {
+					if deployment, err := api.Status(deploymentName); err != nil {
 						return nil, err
 					} else {
 						if deployment.Status.Replicas == 0 {
@@ -184,18 +171,16 @@ func (api API) Restart(id uint64) (*appsv1.Deployment, error) {
 	}
 
 StartAgain:
-	if _, err := api.Start(id); err != nil {
+	if _, err := api.Start(deploymentName); err != nil {
 		return nil, err
 	} else {
-		return api.Status(id)
+		return api.Status(deploymentName)
 	}
 }
 
-func (api API) Rescale(id uint64, replicas int32) (*v1.Scale, error) {
-	deploymentName := api.GetDeploymentName(id)
-
+func (api API) Rescale(deploymentName string, replicas int32) (*v1.Scale, error) {
 	if deploymentName == "" {
-		return nil, errors.New("Deployment with id " + strconv.FormatUint(id, 10) + " not found")
+		return nil, errors.New("Deployment with id " + deploymentName + " not found")
 	}
 
 	if scale, err := api.GetDeploymentClient().GetScale(deploymentName, metav1.GetOptions{}); err == nil && scale != nil {
@@ -206,23 +191,37 @@ func (api API) Rescale(id uint64, replicas int32) (*v1.Scale, error) {
 	}
 }
 
-func (api API) Deploy(body DeployContainerRequest) (uint64, error) {
+func (api API) Deploy(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
 	deployment := deploymentTemplate()
-	container := deployment.Spec.Template.Spec.Containers[0]
-	container.Image = body.Image
+	deployment.Name = request.Id
+	container := &deployment.Spec.Template.Spec.Containers[0]
+	container.Image = request.Image
 	container.Ports = []apiv1.ContainerPort{}
 
-	for port := range body.Ports {
+	for port := range request.Ports {
 		container.Ports = append(container.Ports, apiv1.ContainerPort{
 			Protocol:      apiv1.ProtocolTCP,
 			ContainerPort: int32(port),
 		})
 	}
 
-	val, err := api.GetDeploymentClient().Create(&deployment)
-	if err == nil {
-		return api.AddDeployment(val.Name), nil
+	return api.GetDeploymentClient().Create(&deployment)
+}
+
+func (api API) Configure(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
+	deploymentName := request.Id
+
+	if err := api.Destroy(deploymentName); err != nil {
+		return nil, err
 	}
 
-	return 0, err
+	return api.Deploy(request)
+}
+
+func (api API) List() ([]appsv1.Deployment, error) {
+	if result, err := api.GetDeploymentClient().List(metav1.ListOptions{}); err != nil {
+		return []appsv1.Deployment{}, err
+	} else {
+		return result.Items, nil
+	}
 }
