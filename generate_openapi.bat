@@ -1,0 +1,1 @@
+CALL wsl ./generate_openapi.sh %1
