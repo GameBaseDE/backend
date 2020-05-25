@@ -16,6 +16,7 @@ import (
 )
 
 var api = NewAPI()
+var authenticator = newHttpRequestAuthenticator()
 
 func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
 	return &GameServerStatus{
@@ -27,40 +28,40 @@ func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
 
 // ConfigureContainer - Configure a game server based on POST body
 func ConfigureContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().ConfigureContainer(c)
+	authenticator.ConfigureContainer(c)
 }
 
 // DeleteContainer - Delete deployment of game server
 func DeleteContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().DeleteContainer(c)
+	authenticator.DeleteContainer(c)
 }
 
 // DeployContainer - Deploy a game server based on POST body
 func DeployContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().DeployContainer(c)
+	authenticator.DeployContainer(c)
 }
 
 // GetStatus - Query status of all deployments
 func GetStatus(c *gin.Context) {
-	newHttpRequestAuthenticator().GetStatus(c)
+	authenticator.GetStatus(c)
 }
 
 // ListImages - Get a list of all available game server images
 func ListImages(c *gin.Context) {
-	newHttpRequestAuthenticator().ListImages(c)
+	authenticator.ListImages(c)
 }
 
 // RestartContainer - Restart a game server/container
 func RestartContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().RestartContainer(c)
+	authenticator.RestartContainer(c)
 }
 
 // StartContainer - Start a game server/container
 func StartContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().StartContainer(c)
+	authenticator.StartContainer(c)
 }
 
 // StopContainer - Stop a game server/container
 func StopContainer(c *gin.Context) {
-	newHttpRequestAuthenticator().StopContainer(c)
+	authenticator.StopContainer(c)
 }
