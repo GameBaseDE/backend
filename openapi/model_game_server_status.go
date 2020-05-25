@@ -15,7 +15,7 @@ type GameServerStatus struct {
 	// ID of container
 	Id string `json:"id"`
 
-	// Indentifier of game
+	// Identifier of game
 	GameTag string `json:"gameTag"`
 
 	// Image used in Docker

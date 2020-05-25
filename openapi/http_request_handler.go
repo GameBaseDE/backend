@@ -1,0 +1,16 @@
+package openapi
+
+import (
+	"github.com/gin-gonic/gin"
+)
+
+type httpRequestHandler interface {
+	ListImages(c *gin.Context)
+	GetStatus(c *gin.Context)
+	ConfigureContainer(c *gin.Context)
+	DeployContainer(c *gin.Context)
+	StartContainer(c *gin.Context)
+	StopContainer(c *gin.Context)
+	RestartContainer(c *gin.Context)
+	DeleteContainer(c *gin.Context)
+}
