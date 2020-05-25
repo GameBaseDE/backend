@@ -13,10 +13,10 @@ package openapi
 import (
 	"github.com/gin-gonic/gin"
 	appsv1 "k8s.io/api/apps/v1"
-	"net/http"
 )
 
 var api = NewAPI()
+var authenticator = newHttpRequestAuthenticator()
 
 func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
 	return &GameServerStatus{
@@ -28,123 +28,40 @@ func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
 
 // ConfigureContainer - Configure a game server based on POST body
 func ConfigureContainer(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{})
+	authenticator.ConfigureContainer(c)
 }
 
 // DeleteContainer - Delete deployment of game server
 func DeleteContainer(c *gin.Context) {
-	id := c.Query("id")
-	if id == "" {
-		id = c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-			return
-		}
-	}
-
-	if err := api.Destroy(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+	authenticator.DeleteContainer(c)
 }
 
 // DeployContainer - Deploy a game server based on POST body
 func DeployContainer(c *gin.Context) {
-	var request GameServerConfigurationTemplate
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if result, err := api.Deploy(request); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	} else {
-		h := gin.H{"status": "ok"}
-		h["message"] = AsGameServerStatus(result)
-		c.JSON(http.StatusCreated, h)
-	}
+	authenticator.DeployContainer(c)
 }
 
 // GetStatus - Query status of all deployments
 func GetStatus(c *gin.Context) {
-	id, _ := c.GetQuery("id")
-
-	if id == "" {
-		if result, err := api.List(); err == nil {
-			h := make([]GameServerStatus, 0)
-			for _, status := range result {
-				h = append(h, *AsGameServerStatus(&status))
-			}
-
-			c.JSON(http.StatusOK, h)
-			return
-		}
-	}
-
-	if result, err := api.Status(id); err == nil {
-		h := gin.H{"status": "ok"}
-		h["message"] = AsGameServerStatus(result)
-		c.JSON(http.StatusOK, h)
-		return
-	}
-
-	c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "error"})
+	authenticator.GetStatus(c)
 }
 
 // ListImages - Get a list of all available game server images
 func ListImages(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{})
+	authenticator.ListImages(c)
 }
 
 // RestartContainer - Restart a game server/container
 func RestartContainer(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
-
-	if result, err := api.Restart(id); err == nil {
-		h := gin.H{"status": "ok"}
-		h["message"] = AsGameServerStatus(result)
-		c.JSON(http.StatusAccepted, h)
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-	}
+	authenticator.RestartContainer(c)
 }
 
 // StartContainer - Start a game server/container
 func StartContainer(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
-
-	if result, err := api.Start(id); err == nil {
-		h := gin.H{"status": "ok"}
-		h["message"] = result
-		c.JSON(http.StatusAccepted, h)
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-	}
+	authenticator.StartContainer(c)
 }
 
 // StopContainer - Stop a game server/container
 func StopContainer(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
-
-	if result, err := api.Stop(id); err == nil {
-		h := gin.H{"status": "ok"}
-		h["message"] = result
-		c.JSON(http.StatusAccepted, h)
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-	}
+	authenticator.StopContainer(c)
 }

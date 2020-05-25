@@ -300,7 +300,7 @@ components:
           description: ID of container
           type: string
         gameTag:
-          description: Indentifier of game
+          description: Identifier of game
           type: string
         image:
           description: Image used in Docker
