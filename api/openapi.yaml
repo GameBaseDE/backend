@@ -6,43 +6,47 @@ info:
   description: This is the REST API used as an communication layer between backend
     and frontend.
   title: GameBase Communication API
-  version: 1.0.0
+  version: 2.0.0
 externalDocs:
   description: Learn more about GameBase
-  url: https://gahr.dev
+  url: https://blog.game-base.de
 servers:
+- description: SwaggerHub API Auto Mocking
+  url: https://virtserver.swaggerhub.com/GameBase9/gamebase_communication_api/2.0.0
 - description: Dev Backend version of REST service
-  url: https://backend.dev.gahr.dev/
+  url: https://dev.game-base.de
 - description: Live Backend version of REST service
-  url: https://backend.gamebase.gahr.dev/
+  url: https://game-base.de
 tags:
-- description: REST API v1
-  name: api
+- description: Game server and container management endpoints
+  name: gameserver
+- description: Authentication endpoints
+  name: auth
 paths:
-  /api:
+  /gs/status:
     get:
       operationId: getStatus
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
                 items:
-                  $ref: '#/components/schemas/GameServerStatusArray'
+                  $ref: '#/components/schemas/GameContainerStatus'
                 type: array
           description: Successful operation
-        404:
+        "404":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
-          description: Container not found
+                $ref: '#/components/schemas/Exception'
+          description: Containers' status could not be fetched
+      security:
+      - Bearer: []
       summary: Query status of all deployments
       tags:
-      - api
-  /api/start/{id}:
+      - gameserver
+  /gs/start/{id}:
     get:
       operationId: startContainer
       parameters:
@@ -55,26 +59,20 @@ paths:
           type: string
         style: simple
       responses:
-        200:
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GameServerStatus'
-                type: array
+        "200":
           description: Start successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Start failed
+      security:
+      - Bearer: []
       summary: Start a game server/container
       tags:
-      - api
-  /api/stop/{id}:
+      - gameserver
+  /gs/stop/{id}:
     get:
       operationId: stopContainer
       parameters:
@@ -87,26 +85,20 @@ paths:
           type: string
         style: simple
       responses:
-        200:
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GameServerStatus'
-                type: array
+        "200":
           description: Stop successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Stop failed
+      security:
+      - Bearer: []
       summary: Stop a game server/container
       tags:
-      - api
-  /api/restart/{id}:
+      - gameserver
+  /gs/restart/{id}:
     get:
       operationId: restartContainer
       parameters:
@@ -119,80 +111,71 @@ paths:
           type: string
         style: simple
       responses:
-        200:
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GameServerStatus'
-                type: array
+        "200":
           description: Restart successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Restart failed
+      security:
+      - Bearer: []
       summary: Restart a game server/container
       tags:
-      - api
-  /api/deploy:
+      - gameserver
+  /gs/deploy:
     post:
       operationId: deployContainer
       requestBody:
-        $ref: '#/components/requestBodies/GameServerDeployTemplate'
+        $ref: '#/components/requestBodies/GameContainerDeployment'
       responses:
-        201:
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GameServerStatus'
-                type: array
+        "201":
           description: Deployment successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Deployment failed
-        405:
+        "400":
           description: Invalid input
+      security:
+      - Bearer: []
       summary: Deploy a game server based on POST body
       tags:
-      - api
-  /api/configure:
+      - gameserver
+  /gs/configure/{id}:
     post:
       operationId: configureContainer
+      parameters:
+      - description: ID of game server to configure
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
       requestBody:
-        $ref: '#/components/requestBodies/GameServerConfigurationTemplate'
+        $ref: '#/components/requestBodies/GameContainerConfiguration'
       responses:
-        201:
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GameServerStatus'
-                type: array
+        "201":
           description: Configuration successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Configuration failed
-        405:
+        "400":
           description: Invalid input
+      security:
+      - Bearer: []
       summary: Configure a game server based on POST body
       tags:
-      - api
-  /api/destroy/{id}:
+      - gameserver
+  /gs/destroy/{id}:
     delete:
       operationId: deleteContainer
       parameters:
@@ -205,63 +188,134 @@ paths:
           type: string
         style: simple
       responses:
-        200:
+        "200":
           description: Deletion successful
-        500:
+        "500":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Deletion failed
+      security:
+      - Bearer: []
       summary: Delete deployment of game server
       tags:
-      - api
-  /api/listimages:
+      - gameserver
+  /gs/templates:
     get:
-      operationId: listImages
+      operationId: listTemplates
       responses:
-        200:
+        "200":
           content:
             application/json:
               schema:
                 items:
-                  $ref: '#/components/schemas/GameServerImages'
+                  type: string
                 type: array
           description: Query successful
-        503:
+        "503":
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Exception'
-                type: array
+                $ref: '#/components/schemas/Exception'
           description: Query failed
-      summary: Get a list of all available game server images
+      security:
+      - Bearer: []
+      summary: Get a list of all available game server templates
       tags:
-      - api
+      - gameserver
+  /auth/login:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/UserLogin'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Login successful
+        "403":
+          description: Login failed
+        "400":
+          description: Invalid input
+      summary: Login a user and return a JWT with the user object
+      tags:
+      - auth
 components:
   requestBodies:
-    GameServerDeployTemplate:
+    UserLogin:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GameServerDeployTemplate'
+            $ref: '#/components/schemas/UserLogin'
+    GameContainerDeployment:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GameContainerDeployment'
       description: Game server template which will be used for server creation
       required: true
-    GameServerConfigurationTemplate:
+    GameContainerConfiguration:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GameServerConfigurationTemplate'
+            $ref: '#/components/schemas/GameContainerConfiguration'
       description: Configuration for game server
       required: true
   schemas:
-    GameServerStatusArray:
-      items:
-        $ref: '#/components/schemas/GameServerStatus'
-      type: array
+    Status:
+      default: UNKNOWN
+      enum:
+      - UNKNOWN
+      - RUNNING
+      - STOPPED
+      - RESTARTING
+      - ERROR
+      type: string
+    RestartBehavior:
+      default: none
+      enum:
+      - none
+      - unless-stopped
+      - on-failure
+      - always
+      type: string
+    UserLogin:
+      example:
+        password: password
+        email: email
+      properties:
+        email:
+          description: Email address of the user
+          type: string
+        password:
+          description: The password of the user
+          type: string
+      required:
+      - email
+      - password
+      type: object
+    User:
+      example:
+        fullName: fullName
+        email: email
+        token: token
+      properties:
+        email:
+          description: Email address of the user
+          type: string
+        fullName:
+          description: The full name of the user
+          type: string
+        token:
+          description: The JWT of the users session
+          type: string
+      required:
+      - email
+      - fullName
+      - token
+      type: object
     Exception:
       properties:
         id:
@@ -276,97 +330,173 @@ components:
       required:
       - details
       - exception
-      - id
       type: object
-    GameServerStatus:
+    GameContainerStatus:
       example:
-        image: image
-        slots: 6
-        playerCount: 1
+        configuration:
+          resources:
+            startupArgs: startupArgs
+            memory: 1
+            environmentVars:
+              key: environmentVars
+            ports:
+              tcp:
+              - 0
+              - 0
+              udp:
+              - 6
+              - 6
+            templatePath: templatePath
+          details:
+            serverName: serverName
+            description: description
+            ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        gameServerDetails:
+          key: gameServerDetails
         id: id
-        state:
-        - unknown
-        - unknown
-        ports:
-        - 0
-        - 0
-        map: map
-        mapRotation:
-        - mapRotation
-        - mapRotation
-        gameTag: gameTag
       properties:
         id:
-          description: ID of container
+          description: ID of game server container
           type: string
-        gameTag:
-          description: Identifier of game
-          type: string
-        image:
-          description: Image used in Docker
-          type: string
-        state:
-          items:
-            default: unknown
-            enum:
-            - running
-            - restarting
-            - stopped
-            - error
-            - unknown
+        status:
+          $ref: '#/components/schemas/Status'
+        configuration:
+          $ref: '#/components/schemas/GameContainerConfiguration'
+        gameServerDetails:
+          additionalProperties:
             type: string
-          type: array
-        ports:
-          description: Ports used by game server
-          items:
-            format: int16
-            type: integer
-          type: array
-        slots:
-          description: Max. players allowed
-          type: integer
-        playerCount:
-          description: Current players on server
-          type: integer
-        map:
-          type: string
-        mapRotation:
-          items:
-            type: string
-          type: array
-      required:
-      - gameTag
-      - id
-      - image
-      - ports
-      - state
+          description: Dynamic details by game server monitoring agent
+          type: object
       type: object
-    GameServerDeployTemplate:
+    GameServerDetails:
+      additionalProperties:
+        type: string
+      description: Dynamic details by game server monitoring agent
+      type: object
+    GameContainerDeployment:
       example:
-        image: image
+        templatePath: templatePath
+      properties:
+        templatePath:
+          description: Template path of backend directory that is going to be used
+            for game container creation
+          type: string
+      required:
+      - templatePath
+      type: object
+    GameContainerConfiguration:
+      example:
+        resources:
+          startupArgs: startupArgs
+          memory: 1
+          environmentVars:
+            key: environmentVars
+          ports:
+            tcp:
+            - 0
+            - 0
+            udp:
+            - 6
+            - 6
+          templatePath: templatePath
+        details:
+          serverName: serverName
+          description: description
+          ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        details:
+          $ref: '#/components/schemas/GameContainerConfiguration_details'
+        resources:
+          $ref: '#/components/schemas/GameContainerConfiguration_resources'
+      required:
+      - details
+      - resources.templatePath
+      type: object
+    GameContainerConfiguration_details:
+      description: General details of server
+      example:
+        serverName: serverName
+        description: description
         ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        image:
-          description: Docker image of game server
+        serverName:
+          description: Name of server that will displayed on one's Dashboard
           type: string
         ownerId:
           description: UUID of owner whom this server belongs to
           format: uuid
           type: string
+        description:
+          description: Short description of server which will be displayed on one's
+            Dashboard
+          type: string
       type: object
-    GameServerConfigurationTemplate:
-      anyOf:
-      - $ref: '#/components/schemas/GameServerStatus'
-      - type: object
-    GameServerImages:
+    GameContainerConfiguration_resources_ports:
+      description: Ports to be allocated
       example:
-        images:
-        - images
-        - images
+        tcp:
+        - 0
+        - 0
+        udp:
+        - 6
+        - 6
       properties:
-        images:
-          description: List of images
+        tcp:
           items:
-            type: string
+            format: int16
+            type: integer
+          type: array
+        udp:
+          items:
+            format: int16
+            type: integer
           type: array
       type: object
+    GameContainerConfiguration_resources:
+      example:
+        startupArgs: startupArgs
+        memory: 1
+        environmentVars:
+          key: environmentVars
+        ports:
+          tcp:
+          - 0
+          - 0
+          udp:
+          - 6
+          - 6
+        templatePath: templatePath
+      properties:
+        templatePath:
+          description: Template path of backend directory that is going to be used
+            for game container creation
+          type: string
+        ports:
+          $ref: '#/components/schemas/GameContainerConfiguration_resources_ports'
+        memory:
+          default: -1
+          description: Memory to be allocated
+          type: integer
+        startupArgs:
+          description: Command with arguments that will be run upon container creation/start
+          type: string
+        restartBehavior:
+          $ref: '#/components/schemas/RestartBehavior'
+        environmentVars:
+          additionalProperties:
+            type: string
+          description: Environment variables that configure the game server
+          type: object
+      type: object
+  securitySchemes:
+    Bearer:
+      description: |
+        For accessing the API a valid JWT token must be passed in all the queries in
+        the 'Authorization' header.
+        A valid JWT token is generated by the API and retourned as answer of a call
+        to the route /login giving a valid user & password.
+        The following syntax must be used in the 'Authorization' header :
+            Bearer xxxxxx.yyyyyyy.zzzzzz
+      in: header
+      name: Authorization
+      type: apiKey

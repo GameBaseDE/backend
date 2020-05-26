@@ -10,14 +10,13 @@
 
 package openapi
 
-type Exception struct {
+type Status string
 
-	// ID of container causing this exception
-	Id string `json:"id,omitempty"`
-
-	// Short Exception code
-	Exception string `json:"exception"`
-
-	// Detailed message of issue
-	Details string `json:"details"`
-}
+// List of Status
+const (
+	UNKNOWN    Status = "UNKNOWN"
+	RUNNING    Status = "RUNNING"
+	STOPPED    Status = "STOPPED"
+	RESTARTING Status = "RESTARTING"
+	ERROR      Status = "ERROR"
+)

@@ -13,10 +13,10 @@ func newHttpRequestParser() *httpRequestParser {
 	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
 }
 
-// ListImages - Get a list of all available game server images
-func (hr *httpRequestParser) ListImages(c *gin.Context) {
+// ListTemplates - Get a list of all available game server images
+func (hr *httpRequestParser) ListTemplates(c *gin.Context) {
 	//no parameter checks for list
-	hr.nextHandler.ListImages(c)
+	hr.nextHandler.ListTemplates(c)
 }
 
 // GetStatus - Query status of all deployments
@@ -33,7 +33,7 @@ func (hr *httpRequestParser) ConfigureContainer(c *gin.Context) {
 
 // DeployContainer - Deploy a game server based on POST body
 func (hr *httpRequestParser) DeployContainer(c *gin.Context) {
-	var request GameServerConfigurationTemplate
+	var request GameContainerDeployment
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

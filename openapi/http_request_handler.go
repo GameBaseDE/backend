@@ -5,7 +5,7 @@ import (
 )
 
 type httpRequestHandler interface {
-	ListImages(c *gin.Context)
+	ListTemplates(c *gin.Context)
 	GetStatus(c *gin.Context)
 	ConfigureContainer(c *gin.Context)
 	DeployContainer(c *gin.Context)

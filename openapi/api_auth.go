@@ -10,14 +10,11 @@
 
 package openapi
 
-type Exception struct {
+import (
+	"github.com/gin-gonic/gin"
+)
 
-	// ID of container causing this exception
-	Id string `json:"id,omitempty"`
-
-	// Short Exception code
-	Exception string `json:"exception"`
-
-	// Detailed message of issue
-	Details string `json:"details"`
+// AuthLoginPost - Login a user and return a JWT with the user object
+func AuthLoginPost(c *gin.Context) {
+	//TODO: authenticator.AuthLoginPost(c)
 }

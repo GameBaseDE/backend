@@ -10,12 +10,12 @@ func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 	return &httpRequestAuthenticator{nextHandler: newHttpRequestParser()}
 }
 
-// ListImages - Get a list of all available game server images
-func (hr *httpRequestAuthenticator) ListImages(c *gin.Context) {
+// ListTemplates - Get a list of all available game server images
+func (hr *httpRequestAuthenticator) ListTemplates(c *gin.Context) {
 	if false {
 		return
 	}
-	hr.nextHandler.ListImages(c)
+	hr.nextHandler.ListTemplates(c)
 }
 
 // GetStatus - Query status of all deployments

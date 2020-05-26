@@ -12,8 +12,8 @@ To see how to make this your own, look here:
 
 [README](https://openapi-generator.tech)
 
-- API version: 1.0.0
-- Build date: 2019-12-11T17:53:07.746497700+01:00[Europe/Berlin]
+- API version: 2.0.0
+- Build date: 2020-05-26T15:15:30.521736+02:00[Europe/Berlin]
 For more information, please visit [https://gahr.dev](https://gahr.dev)
 
 ### Running the server

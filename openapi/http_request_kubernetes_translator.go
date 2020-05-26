@@ -6,11 +6,9 @@ import (
 	"net/http"
 )
 
-func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
-	return &GameServerStatus{
-		Id:    deployment.Name,
-		Image: deployment.Spec.Template.Spec.Containers[0].Image,
-		State: deployment.Status.Replicas,
+func AsGameServerStatus(deployment *appsv1.Deployment) *GameContainerStatus {
+	return &GameContainerStatus{
+		Id: deployment.Name,
 	}
 }
 
@@ -22,8 +20,8 @@ func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
 	return &httpRequestKubernetesTranslator{}
 }
 
-// ListImages - Get a list of all available game server images
-func (hr *httpRequestKubernetesTranslator) ListImages(c *gin.Context) {
+// ListTemplates - Get a list of all available game server images
+func (hr *httpRequestKubernetesTranslator) ListTemplates(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
@@ -33,7 +31,7 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 
 	if id == "" {
 		if result, err := api.List(); err == nil {
-			h := make([]GameServerStatus, 0)
+			h := make([]GameContainerStatus, 0)
 			for _, status := range result {
 				h = append(h, *AsGameServerStatus(&status))
 			}
@@ -61,7 +59,7 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 // DeployContainer - Deploy a game server based on POST body
 func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 	//TODO test
-	var request GameServerConfigurationTemplate
+	var request GameContainerDeployment
 	if result, err := api.Deploy(request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	} else {

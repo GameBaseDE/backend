@@ -10,14 +10,8 @@
 
 package openapi
 
-type Exception struct {
+type GameContainerDeployment struct {
 
-	// ID of container causing this exception
-	Id string `json:"id,omitempty"`
-
-	// Short Exception code
-	Exception string `json:"exception"`
-
-	// Detailed message of issue
-	Details string `json:"details"`
+	// Template path of backend directory that is going to be used for game container creation
+	TemplatePath string `json:"templatePath"`
 }

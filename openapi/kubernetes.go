@@ -191,31 +191,40 @@ func (api API) Rescale(deploymentName string, replicas int32) (*v1.Scale, error)
 	}
 }
 
-func (api API) Deploy(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
+func (api API) Deploy(request GameContainerDeployment) (*appsv1.Deployment, error) {
 	deployment := deploymentTemplate()
-	deployment.Name = request.Id
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	container.Image = request.Image
+	container.Image = request.TemplatePath
+
+	return api.GetDeploymentClient().Create(&deployment)
+}
+
+func (api API) Configure(id string, request GameContainerConfiguration) (*appsv1.Deployment, error) {
+	if err := api.Destroy(id); err != nil {
+		return nil, err
+	}
+
+	deployment := deploymentTemplate()
+	deployment.ObjectMeta.Name = request.Details.ServerName
+	container := &deployment.Spec.Template.Spec.Containers[0]
+	container.Image = request.Resources.TemplatePath
 	container.Ports = []apiv1.ContainerPort{}
 
-	for port := range request.Ports {
+	for port := range request.Resources.Ports.Tcp {
 		container.Ports = append(container.Ports, apiv1.ContainerPort{
 			Protocol:      apiv1.ProtocolTCP,
 			ContainerPort: int32(port),
 		})
 	}
 
-	return api.GetDeploymentClient().Create(&deployment)
-}
-
-func (api API) Configure(request GameServerConfigurationTemplate) (*appsv1.Deployment, error) {
-	deploymentName := request.Id
-
-	if err := api.Destroy(deploymentName); err != nil {
-		return nil, err
+	for port := range request.Resources.Ports.Udp {
+		container.Ports = append(container.Ports, apiv1.ContainerPort{
+			Protocol:      apiv1.ProtocolUDP,
+			ContainerPort: int32(port),
+		})
 	}
 
-	return api.Deploy(request)
+	return api.GetDeploymentClient().Create(&deployment)
 }
 
 func (api API) List() ([]appsv1.Deployment, error) {

@@ -10,14 +10,8 @@
 
 package openapi
 
-type Exception struct {
+type GameContainerConfiguration struct {
+	Details GameContainerConfigurationDetails `json:"details"`
 
-	// ID of container causing this exception
-	Id string `json:"id,omitempty"`
-
-	// Short Exception code
-	Exception string `json:"exception"`
-
-	// Detailed message of issue
-	Details string `json:"details"`
+	Resources GameContainerConfigurationResources `json:"resources,omitempty"`
 }

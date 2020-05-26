@@ -10,14 +10,9 @@
 
 package openapi
 
-type Exception struct {
+// GameContainerConfigurationResourcesPorts - Ports to be allocated
+type GameContainerConfigurationResourcesPorts struct {
+	Tcp []int32 `json:"tcp,omitempty"`
 
-	// ID of container causing this exception
-	Id string `json:"id,omitempty"`
-
-	// Short Exception code
-	Exception string `json:"exception"`
-
-	// Detailed message of issue
-	Details string `json:"details"`
+	Udp []int32 `json:"udp,omitempty"`
 }
