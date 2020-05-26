@@ -2,8 +2,17 @@ package openapi
 
 import (
 	"github.com/gin-gonic/gin"
+	appsv1 "k8s.io/api/apps/v1"
 	"net/http"
 )
+
+func AsGameServerStatus(deployment *appsv1.Deployment) *GameServerStatus {
+	return &GameServerStatus{
+		Id:    deployment.Name,
+		Image: deployment.Spec.Template.Spec.Containers[0].Image,
+		State: deployment.Status.Replicas,
+	}
+}
 
 type httpRequestKubernetesTranslator struct {
 	nextHandler httpRequestHandler
