@@ -11,12 +11,12 @@ externalDocs:
   description: Learn more about GameBase
   url: https://blog.game-base.de
 servers:
-- description: SwaggerHub API Auto Mocking
-  url: https://virtserver.swaggerhub.com/GameBase9/gamebase_communication_api/2.0.0
 - description: Dev Backend version of REST service
   url: https://dev.game-base.de
 - description: Live Backend version of REST service
   url: https://game-base.de
+- description: SwaggerHub API Auto Mocking
+  url: https://virtserver.swaggerhub.com/GameBase9/gamebase_communication_api/2.0.0
 tags:
 - description: Game server and container management endpoints
   name: gameserver

@@ -61,70 +61,70 @@ var routes = Routes{
 	{
 		"Index",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/",
+		"/",
 		Index,
 	},
 
 	{
 		"AuthLoginPost",
 		http.MethodPost,
-		"/GameBase9/gamebase_communication_api/2.0.0/auth/login",
+		"/auth/login",
 		AuthLoginPost,
 	},
 
 	{
 		"ConfigureContainer",
 		http.MethodPost,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/configure/:id",
+		"/gs/configure/:id",
 		ConfigureContainer,
 	},
 
 	{
 		"DeleteContainer",
 		http.MethodDelete,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/destroy/:id",
+		"/gs/destroy/:id",
 		DeleteContainer,
 	},
 
 	{
 		"DeployContainer",
 		http.MethodPost,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/deploy",
+		"/gs/deploy",
 		DeployContainer,
 	},
 
 	{
 		"GetStatus",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/status",
+		"/gs/status",
 		GetStatus,
 	},
 
 	{
 		"ListTemplates",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/templates",
+		"/gs/templates",
 		ListTemplates,
 	},
 
 	{
 		"RestartContainer",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/restart/:id",
+		"/gs/restart/:id",
 		RestartContainer,
 	},
 
 	{
 		"StartContainer",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/start/:id",
+		"/gs/start/:id",
 		StartContainer,
 	},
 
 	{
 		"StopContainer",
 		http.MethodGet,
-		"/GameBase9/gamebase_communication_api/2.0.0/gs/stop/:id",
+		"/gs/stop/:id",
 		StopContainer,
 	},
 }

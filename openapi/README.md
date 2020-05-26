@@ -13,7 +13,7 @@ To see how to make this your own, look here:
 [README](https://openapi-generator.tech)
 
 - API version: 2.0.0
-- Build date: 2020-05-26T15:15:30.521736+02:00[Europe/Berlin]
+- Build date: 2020-05-26T15:54:01.513099+02:00[Europe/Berlin]
 For more information, please visit [https://gahr.dev](https://gahr.dev)
 
 ### Running the server
