@@ -27,7 +27,18 @@ func (hr *httpRequestParser) GetStatus(c *gin.Context) {
 
 // ConfigureContainer - Configure a game server based on POST body
 func (hr *httpRequestParser) ConfigureContainer(c *gin.Context) {
-	//test for parameters
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+	var request GameContainerConfiguration
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.Set("id", id)
+	c.Set("request", request)
 	hr.nextHandler.ConfigureContainer(c)
 }
 
@@ -38,6 +49,7 @@ func (hr *httpRequestParser) DeployContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	c.Set("request", request)
 	hr.nextHandler.DeployContainer(c)
 }
 
@@ -48,6 +60,7 @@ func (hr *httpRequestParser) StartContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
+	c.Set("id", id)
 	hr.nextHandler.StartContainer(c)
 }
 
@@ -58,6 +71,7 @@ func (hr *httpRequestParser) StopContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
+	c.Set("id", id)
 	hr.nextHandler.StopContainer(c)
 }
 
@@ -68,18 +82,17 @@ func (hr *httpRequestParser) RestartContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
+	c.Set("id", id)
 	hr.nextHandler.RestartContainer(c)
 }
 
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestParser) DeleteContainer(c *gin.Context) {
-	id := c.Query("id")
+	id := c.Param("id")
 	if id == "" {
-		id = c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-			return
-		}
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
 	}
+	c.Set("id", id)
 	hr.nextHandler.DeleteContainer(c)
 }

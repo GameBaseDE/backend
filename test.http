@@ -5,19 +5,19 @@
 # * 'gtrp' and 'gtr' create a GET request with or without query parameters;
 # * 'ptr' and 'ptrp' create a POST request with a simple or parameter-like body;
 # * 'mptr' and 'fptr' create a POST request to submit a form with a text or file field (multipart/form-data);
-GET http://localhost:80/GameBase9/gamebase_communication_api/2.0.0/gs/status
+GET http://localhost:80/gs/status
 Accept: application/json
 
 ###
-GET http://localhost:80/api/start/42
+GET http://localhost:80/gs/start/42
 Accept: application/json
 
 ###
-GET http://localhost:80/api/stop/42
+GET http://localhost:80/gs/stop/42
 Accept: application/json
 
 ###
-GET http://localhost:80/api/restart/42
+GET http://localhost:80/gs/restart/42
 Accept: application/json
 
 ###
@@ -25,16 +25,11 @@ POST http://localhost:80/gs/deploy
 Accept: application/json
 
 {
-  "image": "nginx",
-  "ports": [
-    80,
-    443
-  ],
-  "slots": 42
+  "TemplatePath": "nginx:latest"
 }
 
 ###
-DELETE http://localhost:80/api/destroy?id=42
+DELETE http://localhost:80/gs/destroy/42
 Accept: application/json
 
 ###
