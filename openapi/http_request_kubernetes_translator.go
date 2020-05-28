@@ -9,10 +9,12 @@ import (
 
 func AsGameServerStatus(deployment *appsv1.Deployment) *GameContainerStatus {
 	status := UNKNOWN
-	if len(deployment.Status.Conditions) != 0 {
-		switch deployment.Status.Conditions[0].Status {
+	conditionsLength := len(deployment.Status.Conditions)
+	if conditionsLength != 0 {
+		latestCondition := deployment.Status.Conditions[conditionsLength-1]
+		switch latestCondition.Status {
 		case v1.ConditionTrue:
-			switch deployment.Status.Conditions[0].Type {
+			switch latestCondition.Type {
 			case appsv1.DeploymentReplicaFailure:
 				status = ERROR
 			case appsv1.DeploymentAvailable:
