@@ -86,6 +86,15 @@ lint code:
     - GameBase
     - docker
 
+sonarqube-check:
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  stage: test
+  script:
+    - sonar-scanner -D"sonar.projectKey=gamebase-daemon" -D"sonar.sources=." -D"sonar.host.url=https://sonarqube.gahr.dev" -D"sonar.sourceEncoding=UTF-8" -D"sonar.login=${SONARQUBE_LOGIN}"
+  allow_failure: true
+
 # --- tests end ---
 
 build:
@@ -94,7 +103,7 @@ build:
     - make
   artifacts:
     paths:
-    - out
+      - out
   tags:
     - GameBase
     - docker
