@@ -23,7 +23,7 @@ const REWRITE = {
             .replace('"net/http"', '')
             .replace(endpointHandler, 'func $1(c *gin.Context) {\n\tauthenticator.$1(c)\n}'),
     'routers.go': content => content // add cors header
-            .replace('router := gin.Default()', 'router := gin.Default()\n\t\n	corsConfig := cors.DefaultConfig()\n	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers: *")\n	router.Use(cors.New(corsConfig))')
+            .replace('router := gin.Default()', 'router := gin.Default()\n\t\n	corsConfig := cors.DefaultConfig()\n	corsConfig.AllowAllOrigins = true\n	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers")\n	router.Use(cors.New(corsConfig))')
         .replace('"github.com/gin-gonic/gin"', '"github.com/gin-contrib/cors"\n\t"github.com/gin-gonic/gin"')
         + '\n\nvar api = NewAPI()\nvar authenticator = newHttpRequestAuthenticator()',
 };

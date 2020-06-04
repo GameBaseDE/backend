@@ -36,7 +36,8 @@ type Routes []Route
 func NewRouter() *gin.Engine {
 	router := gin.Default()
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers: *")
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers")
 	router.Use(cors.New(corsConfig))
 	for _, route := range routes {
 		switch route.Method {
