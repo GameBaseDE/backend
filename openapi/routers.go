@@ -37,7 +37,7 @@ func NewRouter() *gin.Engine {
 	router := gin.Default()
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
-	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers")
+	corsConfig.AddAllowHeaders("Authorization")
 	router.Use(cors.New(corsConfig))
 	for _, route := range routes {
 		switch route.Method {
