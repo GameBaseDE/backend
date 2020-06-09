@@ -11,6 +11,8 @@
 package openapi
 
 import (
+	http2 "gitlab.tandashi.de/GameBase/gamebase-backend/http"
+	"gitlab.tandashi.de/GameBase/gamebase-backend/kubernetes"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
@@ -132,5 +134,5 @@ var routes = Routes{
 	},
 }
 
-var api = NewAPI()
-var authenticator = newHttpRequestAuthenticator()
+var Api = kubernetes.NewAPI()
+var authenticator = http2.NewHttpRequestAuthenticator()
