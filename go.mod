@@ -1,12 +1,10 @@
-module gamebase-daemon
+module gitlab.tandashi.de/GameBase/gamebase-backend
 
 go 1.13
 
 require (
-	github.com/gin-contrib/cors v1.3.0
-	github.com/gin-gonic/gin v1.4.0
-	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
-	k8s.io/apimachinery v0.0.0-20190612205821-1799e75a0719
-	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-	k8s.io/utils v0.0.0-20190221042446-c2654d5206da
+	github.com/gin-contrib/cors v1.3.1
+	gitlab.tandashi.de/GameBase/gamebase-backend/http v0.0.0-20200609180929-56e1863fcb78 // indirect
+	gitlab.tandashi.de/GameBase/gamebase-backend/kubernetes v0.0.0-20200609180929-56e1863fcb78 // indirect
+	gitlab.tandashi.de/GameBase/gamebase-backend/openapi v0.0.0-20200609180929-56e1863fcb78
 )

@@ -1,8 +1,9 @@
-package openapi
+package kubernetes
 
 import (
 	"errors"
 	"flag"
+	"gitlab.tandashi.de/GameBase/gamebase-backend/openapi"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/autoscaling/v1"
 	apiv1 "k8s.io/api/core/v1"
@@ -191,7 +192,7 @@ func (api API) Rescale(deploymentName string, replicas int32) (*v1.Scale, error)
 	}
 }
 
-func (api API) Deploy(request GameContainerDeployment) (*appsv1.Deployment, error) {
+func (api API) Deploy(request openapi.GameContainerDeployment) (*appsv1.Deployment, error) {
 	deployment := deploymentTemplate()
 	container := &deployment.Spec.Template.Spec.Containers[0]
 	container.Image = request.TemplatePath
@@ -199,7 +200,7 @@ func (api API) Deploy(request GameContainerDeployment) (*appsv1.Deployment, erro
 	return api.GetDeploymentClient().Create(&deployment)
 }
 
-func (api API) Configure(id string, request GameContainerConfiguration) (*appsv1.Deployment, error) {
+func (api API) Configure(id string, request openapi.GameContainerConfiguration) (*appsv1.Deployment, error) {
 	if err := api.Destroy(id); err != nil {
 		return nil, err
 	}
