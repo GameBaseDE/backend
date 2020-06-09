@@ -1,4 +1,4 @@
-package http
+package openapi
 
 import "github.com/gin-gonic/gin"
 
@@ -6,7 +6,7 @@ type httpRequestAuthenticator struct {
 	nextHandler httpRequestHandler
 }
 
-func NewHttpRequestAuthenticator() *httpRequestAuthenticator {
+func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 	return &httpRequestAuthenticator{nextHandler: newHttpRequestParser()}
 }
 

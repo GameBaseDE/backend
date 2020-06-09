@@ -1,8 +1,8 @@
 package main
 
 import (
+	"gamebase-daemon/openapi"
 	"github.com/gin-contrib/cors"
-	"gitlab.tandashi.de/GameBase/gamebase-backend/openapi"
 	"os"
 )
 

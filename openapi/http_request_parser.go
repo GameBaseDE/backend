@@ -1,8 +1,7 @@
-package http
+package openapi
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.tandashi.de/GameBase/gamebase-backend/openapi"
 	"net/http"
 )
 
@@ -33,7 +32,7 @@ func (hr *httpRequestParser) ConfigureContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
-	var request openapi.GameContainerConfiguration
+	var request GameContainerConfiguration
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -45,7 +44,7 @@ func (hr *httpRequestParser) ConfigureContainer(c *gin.Context) {
 
 // DeployContainer - Deploy a game server based on POST body
 func (hr *httpRequestParser) DeployContainer(c *gin.Context) {
-	var request openapi.GameContainerDeployment
+	var request GameContainerDeployment
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
