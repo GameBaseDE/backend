@@ -25,9 +25,9 @@ node tools/rewrite.js || exit 1
 
 # these files can't be moved into other directories because then go would consider them to be in another package
 # which doesn't work since go doesn't support cyclic dependencies
-mv openapi/kubernetes.go tmp/out/go
-mv openapi/request_handlers.go tmp/out/go
+mv openapi/authentication_*.go tmp/out/go
 mv openapi/http_* tmp/out/go
+mv openapi/kubernetes_*.go tmp/out/go
 
 rsync --delete -achv tmp/out/api/ api/ || exit 1
 rsync --delete -achv tmp/out/go/ openapi/ || exit 1
