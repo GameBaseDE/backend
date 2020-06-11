@@ -12,9 +12,31 @@ package openapi
 
 import (
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // AuthLoginPost - Login a user and return a JWT with the user object
 func AuthLoginPost(c *gin.Context) {
-	//TODO: authenticator.AuthLoginPost(c)
+	var request UserLogin
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !isValidUserLogin(request) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
+		return
+	}
+
+	token, err := createToken(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, User{
+		Email:    "test@example.com",
+		FullName: "Mr. Test",
+		Token:    token.AccessToken,
+	})
 }

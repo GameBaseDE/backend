@@ -1,6 +1,9 @@
 package openapi
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 type httpRequestAuthenticator struct {
 	nextHandler httpRequestHandler
@@ -12,7 +15,8 @@ func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 
 // ListTemplates - Get a list of all available game server images
 func (hr *httpRequestAuthenticator) ListTemplates(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.ListTemplates(c)
@@ -20,7 +24,8 @@ func (hr *httpRequestAuthenticator) ListTemplates(c *gin.Context) {
 
 // GetStatus - Query status of all deployments
 func (hr *httpRequestAuthenticator) GetStatus(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.GetStatus(c)
@@ -28,7 +33,8 @@ func (hr *httpRequestAuthenticator) GetStatus(c *gin.Context) {
 
 // ConfigureContainer - Configure a game server based on POST body
 func (hr *httpRequestAuthenticator) ConfigureContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.ConfigureContainer(c)
@@ -36,7 +42,8 @@ func (hr *httpRequestAuthenticator) ConfigureContainer(c *gin.Context) {
 
 // DeployContainer - Deploy a game server based on POST body
 func (hr *httpRequestAuthenticator) DeployContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.DeployContainer(c)
@@ -44,7 +51,8 @@ func (hr *httpRequestAuthenticator) DeployContainer(c *gin.Context) {
 
 // StartContainer - Start a game server/container
 func (hr *httpRequestAuthenticator) StartContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.StartContainer(c)
@@ -52,7 +60,8 @@ func (hr *httpRequestAuthenticator) StartContainer(c *gin.Context) {
 
 // StopContainer - Stop a game server/container
 func (hr *httpRequestAuthenticator) StopContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.StopContainer(c)
@@ -60,7 +69,8 @@ func (hr *httpRequestAuthenticator) StopContainer(c *gin.Context) {
 
 // RestartContainer - Restart a game server/container
 func (hr *httpRequestAuthenticator) RestartContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.RestartContainer(c)
@@ -68,7 +78,8 @@ func (hr *httpRequestAuthenticator) RestartContainer(c *gin.Context) {
 
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestAuthenticator) DeleteContainer(c *gin.Context) {
-	if false {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
 	hr.nextHandler.DeleteContainer(c)
