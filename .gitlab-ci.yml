@@ -55,8 +55,6 @@ generate openapi:
     paths:
       - .
   only:
-    variables:
-      - $GENERATE_OPENAPI == "true"
     refs:
       - GB-138
   tags:
