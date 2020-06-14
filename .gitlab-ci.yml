@@ -43,6 +43,7 @@ generate openapi:
     - make generate
     - BRANCH="swagger-$(cat swagger-version)"
     - git checkout -b $BRANCH
+    - git config --global user.email "info@game-base.de" && git config --global user.name "Swagger Server Generator"
     - git commit -am "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
     - rm swagger-*
     - git commit --amend --no-edit
