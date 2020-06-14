@@ -16,6 +16,8 @@ mkdir tmp || exit 1
     fi
     git checkout $BRANCH || exit 1
 
+    env
+
     # if called from CI record commit and version for reproducibility
     if [ -z "$CI" ]; then
       git log --no-decorate -n1 --pretty=%H >../../swagger-commit
