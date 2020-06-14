@@ -13,9 +13,12 @@ before_script:
 
 stages:
   - dependencies
+  - pre-build
   - test
   - build
   - deploy
+
+# --- dependencies stage ---
 
 make dependencies: # pull cache, update dependencies, push cache
   cache:
@@ -26,6 +29,27 @@ make dependencies: # pull cache, update dependencies, push cache
   stage: dependencies
   script:
     - make dep
+  tags:
+    - GameBase
+    - docker
+
+# --- pre-build stage (generate server stub via openapi) ---
+
+generate openapi:
+  script:
+    - apt update && apt install -y curl
+    - curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    - apt update && apt install -y nodejs default-jre rsync
+    - make generate
+  stage: pre-build
+  artifacts:
+    paths:
+      - .
+  only:
+    variables:
+      - $GENERATE_OPENAPI == "true"
+    refs:
+      - GB-138
   tags:
     - GameBase
     - docker
@@ -99,6 +123,8 @@ sonarqube-check:
 
 # --- tests end ---
 
+# --- build stage ---
+
 build:
   stage: build
   script:
@@ -109,6 +135,9 @@ build:
   tags:
     - GameBase
     - docker
+
+
+# --- deploy stage ---
 
 deploy master:
   stage: deploy
@@ -133,7 +162,10 @@ deploy dev:
     - docker rm gamebase-backend-dev || true
     - docker run -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
   except:
-    - master
+    refs:
+      - master
+    variables:
+      - $GENERATE_OPENAPI == "true"
   tags:
     - GameBase
     - shell
