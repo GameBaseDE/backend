@@ -15,6 +15,12 @@ mkdir tmp || exit 1
       BRANCH="$1"
     fi
     git checkout $BRANCH || exit 1
+
+    # if called from CI record commit and version for reproducibility
+    if [ -z "$CI" ]; then
+      git log --no-decorate -n1 --pretty=%H >../../swagger-commit
+      grep -Po 'version: "(\d\.\d(.\d)?)"' yaml-unresolved/swagger.yaml | cut -d" " -f2 | cut -d "\"" -f2 >../../swagger-version
+    fi
   )
 
   npm install @openapitools/openapi-generator-cli afc11hn/gofmt.js || exit 1

@@ -41,6 +41,12 @@ generate openapi:
     - curl -sL https://deb.nodesource.com/setup_14.x | bash -
     - apt update && apt install -y nodejs default-jre rsync
     - make generate
+    - BRANCH="swagger-$(cat swagger-version)"
+    - git checkout $BRANCH
+    - git commit -am "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
+    - rm swagger-*
+    - git commit --amend --no-edit
+    - git push -u $BRANCH
   stage: pre-build
   artifacts:
     paths:
