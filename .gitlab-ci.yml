@@ -47,7 +47,7 @@ generate openapi:
     - git commit -am "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
     - rm swagger-*
     - git commit --amend --no-edit
-    - git push -u $BRANCH
+    - git push -u origin $BRANCH
   stage: pre-build
   artifacts:
     paths:
