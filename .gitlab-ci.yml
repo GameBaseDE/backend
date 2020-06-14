@@ -46,7 +46,7 @@ generate openapi:
     - git config --global user.email "info@game-base.de" && git config --global user.name "Swagger Server Generator"
     - git add api* openapi*
     - git commit -m "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
-    - git push -u origin && exit 1
+    - git push --set-upstream origin $BRANCH && exit 1
   stage: pre-build
   artifacts:
     paths:
