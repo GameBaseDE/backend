@@ -20,6 +20,7 @@ mkdir tmp || exit 1
     if [ -z "$CI" ]; then
       git log --no-decorate -n1 --pretty=%H >../../swagger-commit
       grep -Po 'version: "(\d\.\d(.\d)?)"' yaml-unresolved/swagger.yaml | cut -d" " -f2 | cut -d "\"" -f2 >../../swagger-version
+      ls ../..
     fi
   )
 
