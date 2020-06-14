@@ -42,14 +42,11 @@ generate openapi:
     - apt update && apt install -y nodejs default-jre rsync
     - make generate
     - BRANCH="swagger-$(cat swagger-version)"
-    - git branch -l
     - git checkout -b $BRANCH
     - git config --global user.email "info@game-base.de" && git config --global user.name "Swagger Server Generator"
-    - git status && exit 1
+    - git add api* openapi*
     - git commit -m "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
-    - rm swagger-*
-    - git commit --amend --no-edit
-    - git push -u origin $BRANCH
+    - git push -u origin $BRANCH && exit 1
   stage: pre-build
   artifacts:
     paths:
