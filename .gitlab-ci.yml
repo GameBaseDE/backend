@@ -42,8 +42,8 @@ generate openapi:
     - apt update && apt install -y nodejs default-jre rsync
     - make generate
     - BRANCH="swagger-$(cat swagger-version)"
+    - git config user.email "info@game-base.de" && git config user.name "Swagger Server Generator"
     - git stash push -u && git checkout -B $BRANCH && git stash pop
-    - git config --global user.email "info@game-base.de" && git config --global user.name "Swagger Server Generator"
     - git add api* openapi*
     - git commit -m "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
     - 'which ssh-agent || ( apt-get update -qy && apt-get install openssh-client -qqy )'
@@ -53,7 +53,7 @@ generate openapi:
     - chmod 700 ~/.ssh
     - echo "${DEPLOY_KEY_PUBLIC}" >> ~/.ssh/id_rsa.pub
     - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-    - git config --unset remote
+    - git config --unset remote.origin.url
     - GIT_TRACE=1 git push --set-upstream origin $BRANCH && exit 1
   stage: pre-build
   artifacts:
