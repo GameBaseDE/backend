@@ -57,7 +57,6 @@ generate openapi:
     - git config --add remote.origin.url "git@${CI_SERVER_HOST}:${CI_PROJECT_PATH}.git"
     - echo "git@${CI_SERVER_HOST}:${CI_PROJECT_PATH}.git"
     - echo $CI_REPOSITORY_URL
-    - https://gitlab-ci-token:[MASKED]@gitlab.tandashi.de/GameBase/gamebase-backend.git/
     - GIT_TRACE=1 git push --set-upstream origin $BRANCH && exit 1
   stage: pre-build
   artifacts:
