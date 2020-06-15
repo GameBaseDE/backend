@@ -54,6 +54,7 @@ generate openapi:
     - echo "${DEPLOY_KEY_PUBLIC}" >> ~/.ssh/id_rsa.pub
     - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
     - git config --unset remote.origin.url
+    - git config --add remote.origin.url $CI_REPOSITORY_URL
     - GIT_TRACE=1 git push --set-upstream origin $BRANCH && exit 1
   stage: pre-build
   artifacts:
