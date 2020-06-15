@@ -41,7 +41,7 @@ generate openapi:
     - curl -sL https://deb.nodesource.com/setup_14.x | bash -
     - apt update && apt install -y nodejs default-jre rsync
     - make generate
-    - BRANCH="swagger-$(cat swagger-version)"
+    - BRANCH=development
     - git config user.email "info@game-base.de" && git config user.name "Swagger Server Generator"
     - git stash push -u && git checkout -B $BRANCH && git stash pop
     - git add api* openapi*
@@ -61,8 +61,10 @@ generate openapi:
     paths:
       - .
   only:
+    variables:
+      - $GENERATE_OPENAPI == "true"
     refs:
-      - GB-138
+      - development
   tags:
     - GameBase
     - docker
