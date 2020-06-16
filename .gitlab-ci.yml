@@ -13,9 +13,12 @@ before_script:
 
 stages:
   - dependencies
+  - pre-build
   - test
   - build
   - deploy
+
+# --- dependencies stage ---
 
 make dependencies: # pull cache, update dependencies, push cache
   cache:
@@ -26,6 +29,42 @@ make dependencies: # pull cache, update dependencies, push cache
   stage: dependencies
   script:
     - make dep
+  tags:
+    - GameBase
+    - docker
+
+# --- pre-build stage (generate server stub via openapi) ---
+
+generate openapi:
+  script:
+    - apt update && apt install -y curl
+    - curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    - apt update && apt install -y nodejs default-jre rsync
+    - make generate
+    - BRANCH=development
+    - git config user.email "info@game-base.de" && git config user.name "Swagger Server Generator"
+    - git stash push -u && git checkout -B $BRANCH && git stash pop
+    - git add api* openapi*
+    - git commit -m "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
+    - which ssh-agent || ( apt-get update -qy && apt-get install openssh-client -qqy )
+    - eval `ssh-agent -s`
+    - echo "${DEPLOY_KEY_PRIVATE}" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "${DEPLOY_KEY_PUBLIC}" >> ~/.ssh/id_rsa.pub
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - git config --unset remote.origin.url
+    - git config --add remote.origin.url "git@${CI_SERVER_HOST}:${CI_PROJECT_PATH}.git"
+    - GIT_TRACE=1 git push --set-upstream origin $BRANCH && exit 1
+  stage: pre-build
+  artifacts:
+    paths:
+      - .
+  only:
+    variables:
+      - $GENERATE_OPENAPI == "true"
+    refs:
+      - development
   tags:
     - GameBase
     - docker
@@ -99,6 +138,8 @@ sonarqube-check:
 
 # --- tests end ---
 
+# --- build stage ---
+
 build:
   stage: build
   script:
@@ -109,6 +150,9 @@ build:
   tags:
     - GameBase
     - docker
+
+
+# --- deploy stage ---
 
 deploy master:
   stage: deploy
@@ -133,7 +177,10 @@ deploy dev:
     - docker rm gamebase-backend-dev || true
     - docker run -e TZ=Europe/Berlin -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
   except:
-    - master
+    refs:
+      - master
+    variables:
+      - $GENERATE_OPENAPI == "true"
   tags:
     - GameBase
     - shell
