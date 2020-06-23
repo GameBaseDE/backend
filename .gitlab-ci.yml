@@ -154,6 +154,36 @@ build:
 
 # --- deploy stage ---
 
+publish docker image:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  except:
+    - master
+  tags:
+    - GameBase
+    - docker
+
+publish docker image latest:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" -t gamebaseproject/backend:latest .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  only:
+    - master
+  tags:
+    - GameBase
+    - docker
+
 deploy master:
   stage: deploy
   script:
