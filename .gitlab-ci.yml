@@ -157,11 +157,18 @@ build:
 deploy master:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-live .
     - docker stop gamebase-backend-live || true
     - docker rm gamebase-backend-live || true
-    - docker run -e TZ=Europe/Berlin -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42070:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-live
+      gamebase-backend-live
   only:
     - master
   tags:
@@ -171,11 +178,18 @@ deploy master:
 deploy dev:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - docker run -e TZ=Europe/Berlin -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42069:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-dev
+      gamebase-backend-dev
   except:
     refs:
       - master
