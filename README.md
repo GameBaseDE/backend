@@ -25,8 +25,11 @@ It is supposed to be used in conjunction with the
 which provides an easy to use user interface.
 
 ## Prerequisites
-You will need a Kubernetes cluster which GameBase will use to manage your game servers.
-The GameBase backend is distributed as a docker image which is built from this repository.
+You will need a [Kubernetes cluster](https://kubernetes.io/) 
+(we recommend [Minikube](https://kubernetes.io/docs/setup/learning-environment/minikube/),
+because it is relatively easy to setup) which GameBase will use to manage your game servers.
+The GameBase backend is distributed as a [Docker](https://www.docker.com/) image which is built from this repository.
+This means you will also need to install Docker on your machine.
 
 Before you continue, please make sure you have both a Kubernetes cluster and Docker installed.
 
@@ -59,3 +62,14 @@ Check if the server is running by running `docker logs my-gamebase-backend`. You
     [GIN-debug] Listening and serving HTTP on :80
 
 Your output might differ as this is from a debug build.
+
+## Building
+You can build this project yourself.
+Because the server is written in Go you will need to have [Go](https://golang.org/) installed.
+Once setup, run from the repository root:
+
+    go build -i -v -o out/server
+
+This will put the compiled server binary in the directory `out`.
+
+All the other interesting commands are in the Makefile.
