@@ -14,11 +14,48 @@
 [![Technical Debt](https://sonarqube.gahr.dev/api/project_badges/measure?project=gamebase-daemon&metric=sqale_index)](https://sonarqube.gahr.dev/dashboard?id=gamebase-daemon)
 [![Vulnerabilities](https://sonarqube.gahr.dev/api/project_badges/measure?project=gamebase-daemon&metric=vulnerabilities)](https://sonarqube.gahr.dev/dashboard?id=gamebase-daemon)
 
-# GameBase Daemon
-A backend daemon that takes care of Docker orchestration written in Go.
+# GameBase Backend
+This is the backend service for the GameBase game server management platform.
+GameBase makes it easy to manage game servers inside a Kubernetes cluster.
 
-**NOTE:** README is subject to change.
+The backend is implemented as a REST API based on the 
+[GameBase REST API swagger definition](https://gitlab.tandashi.de/GameBase/swagger-rest-api). 
+It is supposed to be used in conjunction with the 
+[GameBase Frontend](https://gitlab.tandashi.de/GameBase/gamebase-frontend) 
+which provides an easy to use user interface.
 
-## Usage
-It is planned that the Daemon is installed via Installation Interface of GameBase Frontend.
+## Prerequisites
+You will need a Kubernetes cluster which GameBase will use to manage your game servers.
+The GameBase backend is distributed as a docker image which is built from this repository.
 
+Before you continue, please make sure you have both a Kubernetes cluster and Docker installed.
+
+## Deployment
+Deployment is quite simple. Just run the docker image for the GameBase backend with the following command:
+
+    docker run -p $MY_GAMEBASE_BACKEND_PORT:80 -e TZ=Europe/Berlin --mount type=bind,source=$MY_KUBECONFIG_PATH,target=/root/.kube/config,readonly --name my-gamebase-backend gamebaseproject/backend
+
+You will need to choose a value for $MY_GAMEBASE_BACKEND_PORT (the port where you want to backend server to run),
+$MY_KUBECONFIG_PATH (the path to your kubeconfig file) and maybe you want to change the name of the docker container.
+You should see a hash like `b09cf4152900457843a2adb398d330c33bddd87b407036c1d2aa5be3dafe4e05`.
+Check if the server is running by running `docker logs my-gamebase-backend`. You should see something like 
+
+    [GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+    
+    [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+     - using env:   export GIN_MODE=release
+     - using code:  gin.SetMode(gin.ReleaseMode)
+    
+    [GIN-debug] GET    /                         --> gamebase-daemon/openapi.Index (4 handlers)
+    [GIN-debug] POST   /auth/login               --> gamebase-daemon/openapi.AuthLoginPost (4 handlers)
+    [GIN-debug] POST   /gs/configure/:id         --> gamebase-daemon/openapi.ConfigureContainer (4 handlers)
+    [GIN-debug] DELETE /gs/destroy/:id           --> gamebase-daemon/openapi.DeleteContainer (4 handlers)
+    [GIN-debug] POST   /gs/deploy                --> gamebase-daemon/openapi.DeployContainer (4 handlers)
+    [GIN-debug] GET    /gs/status                --> gamebase-daemon/openapi.GetStatus (4 handlers)
+    [GIN-debug] GET    /gs/templates             --> gamebase-daemon/openapi.ListTemplates (4 handlers)
+    [GIN-debug] GET    /gs/restart/:id           --> gamebase-daemon/openapi.RestartContainer (4 handlers)
+    [GIN-debug] GET    /gs/start/:id             --> gamebase-daemon/openapi.StartContainer (4 handlers)
+    [GIN-debug] GET    /gs/stop/:id              --> gamebase-daemon/openapi.StopContainer (4 handlers)
+    [GIN-debug] Listening and serving HTTP on :80
+
+Your output might differ as this is from a debug build.
