@@ -1,9 +1,7 @@
 FROM golang:latest
 
-RUN env
-COPY config /root/.kube/config
+RUN mkdir -p /root/.kube
 
 EXPOSE 80
 COPY out/server server
-
 CMD ["./server"]
