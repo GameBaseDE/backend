@@ -27,6 +27,8 @@ make dependencies: # pull cache, update dependencies, push cache
     # override the policy
     policy: pull-push
   stage: dependencies
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make dep
   tags:
