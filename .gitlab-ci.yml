@@ -122,8 +122,9 @@ lint code:
   stage: test
   before_script:
     - export GOPATH="$CI_PROJECT_DIR/.cache"
-    - PATH="$GOPATH/bin:$PATH"
+    - apk add --update alpine-sdk bash
     - go get -u golang.org/x/lint/golint
+    - PATH="$GOPATH/bin:$PATH"
   script:
     - make lint
   allow_failure: true
