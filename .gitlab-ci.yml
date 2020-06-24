@@ -152,7 +152,7 @@ build:
   before_script:
     - apk add --update alpine-sdk bash
   script:
-    - make build-static
+    - make build
   artifacts:
     paths:
       - out
