@@ -1,4 +1,4 @@
-image: dregistry.gahr.dev/ci-go-runner
+image: golang:alpine
 
 # Keep vendor dependencies between jobs (results in lower build times)
 cache: &global_cache
@@ -9,6 +9,7 @@ cache: &global_cache
   policy: pull
 
 before_script:
+  - apk add --update alpine-sdk
   - export GOPATH="$CI_PROJECT_DIR/.cache"
 
 stages:
@@ -36,6 +37,9 @@ make dependencies: # pull cache, update dependencies, push cache
 # --- pre-build stage (generate server stub via openapi) ---
 
 generate openapi:
+  image: golang:latest
+  before_script:
+    - export GOPATH="$CI_PROJECT_DIR/.cache"
   script:
     - apt update && apt install -y curl
     - curl -sL https://deb.nodesource.com/setup_14.x | bash -
@@ -143,7 +147,7 @@ sonarqube-check:
 build:
   stage: build
   script:
-    - make
+    - make build-static
   artifacts:
     paths:
       - out
@@ -231,6 +235,8 @@ deploy dev:
 
 pages:
   stage: deploy
+  image: alpine
+  before_script: []
   script:
     - mkdir public
     - cp coverage.html public

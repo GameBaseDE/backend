@@ -1,7 +1,7 @@
-FROM golang:latest
+FROM scratch
 
 RUN mkdir -p /root/.kube
 
 EXPOSE 80
 COPY out/server server
-CMD ["./server"]
+ENTRYPOINT ["./server"]
