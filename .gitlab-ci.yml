@@ -1,4 +1,4 @@
-image: dregistry.gahr.dev/ci-go-runner
+image: golang:alpine
 
 # Keep vendor dependencies between jobs (results in lower build times)
 cache: &global_cache
@@ -27,6 +27,8 @@ make dependencies: # pull cache, update dependencies, push cache
     # override the policy
     policy: pull-push
   stage: dependencies
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make dep
   tags:
@@ -36,6 +38,7 @@ make dependencies: # pull cache, update dependencies, push cache
 # --- pre-build stage (generate server stub via openapi) ---
 
 generate openapi:
+  image: golang:latest
   script:
     - apt update && apt install -y curl
     - curl -sL https://deb.nodesource.com/setup_14.x | bash -
@@ -73,6 +76,8 @@ generate openapi:
 
 unit tests:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make test
   tags:
@@ -81,22 +86,17 @@ unit tests:
 
 race detector:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make race
   tags:
     - GameBase
     - docker
 
-memory sanitizer:
-  stage: test
-  script:
-    - make msan
-  tags:
-    - GameBase
-    - docker
-
 code coverage:
   stage: test
+  image: golang:latest
   script:
     - make coverage
   tags:
@@ -105,10 +105,12 @@ code coverage:
 
 code coverage report:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make coverhtml
   only:
-  - master
+    - master
   artifacts:
     paths:
       - coverage.html
@@ -118,6 +120,11 @@ code coverage report:
 
 lint code:
   stage: test
+  before_script:
+    - export GOPATH="$CI_PROJECT_DIR/.cache"
+    - apk add --update alpine-sdk bash
+    - go get -u golang.org/x/lint/golint
+    - PATH="$GOPATH/bin:$PATH"
   script:
     - make lint
   allow_failure: true
@@ -142,8 +149,10 @@ sonarqube-check:
 
 build:
   stage: build
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
-    - make
+    - make build
   artifacts:
     paths:
       - out
@@ -154,14 +163,51 @@ build:
 
 # --- deploy stage ---
 
+publish docker image:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  except:
+    - master
+  tags:
+    - GameBase
+    - docker
+
+publish docker image latest:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" -t gamebaseproject/backend:latest .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  only:
+    - master
+  tags:
+    - GameBase
+    - docker
+
 deploy master:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-live .
     - docker stop gamebase-backend-live || true
     - docker rm gamebase-backend-live || true
-    - docker run -e TZ=Europe/Berlin -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42070:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-live
+      gamebase-backend-live
   only:
     - master
   tags:
@@ -171,11 +217,18 @@ deploy master:
 deploy dev:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - docker run -e TZ=Europe/Berlin -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42069:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-dev
+      gamebase-backend-dev
   except:
     refs:
       - master
@@ -187,6 +240,7 @@ deploy dev:
 
 pages:
   stage: deploy
+  image: alpine
   script:
     - mkdir public
     - cp coverage.html public
