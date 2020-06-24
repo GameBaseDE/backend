@@ -9,7 +9,6 @@ cache: &global_cache
   policy: pull
 
 before_script:
-  - apk add --update alpine-sdk bash
   - export GOPATH="$CI_PROJECT_DIR/.cache"
 
 stages:
@@ -38,8 +37,6 @@ make dependencies: # pull cache, update dependencies, push cache
 
 generate openapi:
   image: golang:latest
-  before_script:
-    - export GOPATH="$CI_PROJECT_DIR/.cache"
   script:
     - apt update && apt install -y curl
     - curl -sL https://deb.nodesource.com/setup_14.x | bash -
@@ -77,6 +74,8 @@ generate openapi:
 
 unit tests:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make test
   tags:
@@ -85,6 +84,8 @@ unit tests:
 
 race detector:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make race
   tags:
@@ -94,8 +95,6 @@ race detector:
 code coverage:
   stage: test
   image: golang:latest
-  before_script:
-    - export GOPATH="$CI_PROJECT_DIR/.cache"
   script:
     - make coverage
   tags:
@@ -104,10 +103,12 @@ code coverage:
 
 code coverage report:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make coverhtml
   only:
-  - master
+    - master
   artifacts:
     paths:
       - coverage.html
@@ -117,9 +118,9 @@ code coverage report:
 
 lint code:
   stage: test
-  image: golang:latest
   before_script:
     - export GOPATH="$CI_PROJECT_DIR/.cache"
+    - PATH="$GOPATH/bin:$PATH"
     - go get -u golang.org/x/lint/golint
   script:
     - make lint
@@ -145,6 +146,8 @@ sonarqube-check:
 
 build:
   stage: build
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make build-static
   artifacts:
@@ -235,7 +238,6 @@ deploy dev:
 pages:
   stage: deploy
   image: alpine
-  before_script: []
   script:
     - mkdir public
     - cp coverage.html public
