@@ -33,6 +33,9 @@ dep: ## Get the dependencies
 build: ## Build the binary file
 	@go build -i -v -o out/server
 
+build-static: ## Build the binary file and link it statically
+	@go build -i -v -o out/server --ldflags '-linkmode external -extldflags "-static"'
+
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)
 
