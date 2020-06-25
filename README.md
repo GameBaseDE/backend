@@ -38,8 +38,8 @@ Deployment is quite simple. Just run the docker image for the GameBase backend w
 
     docker run -p "$MY_GAMEBASE_BACKEND_PORT:80" -e TZ=Europe/Berlin --mount "type=bind,source=$MY_KUBECONFIG_PATH,target=/root/.kube/config,readonly" --name my-gamebase-backend gamebaseproject/backend
 
-You will need to choose a value for $MY_GAMEBASE_BACKEND_PORT (the port where you want to backend server to run),
-$MY_KUBECONFIG_PATH (the path to your kubeconfig file) and maybe you want to change the name of the docker container.
+You will need to choose a value for `$MY_GAMEBASE_BACKEND_PORT` (the port where you want to backend server to run),
+`$MY_KUBECONFIG_PATH` (the path to your kubeconfig file) and maybe you want to change the name of the docker container.
 You should see a hash like `b09cf4152900457843a2adb398d330c33bddd87b407036c1d2aa5be3dafe4e05`.
 Check if the server is running by running `docker logs my-gamebase-backend`. You should see something like 
 
