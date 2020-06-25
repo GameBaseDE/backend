@@ -33,11 +33,16 @@ dep: ## Get the dependencies
 build: ## Build the binary file
 	@go build -i -v -o out/server
 
+build-static: ## Build the binary file and link it statically
+	@go build -i -v -o out/server --ldflags '-linkmode external -extldflags "-static"'
+
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)
 
 generate: ## Generate the server stub from the latest openapi specification
-	dos2unix tools/generate_openapi.sh && tools/generate_openapi.sh
+	dos2unix tools/generate_openapi.sh | true
+	@chmod +x tools/coverage.sh
+	bash tools/generate_openapi.sh
 
 help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
