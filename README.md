@@ -68,7 +68,7 @@ You can build this project yourself.
 Because the server is written in Go you will need to have [Go](https://golang.org/) installed.
 Once setup, run from the repository root:
 
-    go build -i -v -o out/server
+    make build
 
 This will put the compiled server binary in the directory `out`.
 
