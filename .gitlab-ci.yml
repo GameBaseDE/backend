@@ -170,8 +170,8 @@ publish docker image:
   before_script:
     - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
   script:
-    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" .
-    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_SHA" .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_SHA"
   except:
     - master
   tags:
@@ -185,10 +185,11 @@ publish docker image latest:
   before_script:
     - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
   script:
-    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" -t gamebaseproject/backend:latest .
-    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+    - docker build --pull -t "gamebaseproject/backend:CI_COMMIT_REF_NAME" -t "gamebaseproject/backend:latest" .
+    - docker push "gamebaseproject/backend:CI_COMMIT_REF_NAME"
+    - docker push "gamebaseproject/backend:latest"
   only:
-    - master
+    - tags
   tags:
     - GameBase
     - docker
