@@ -1,4 +1,4 @@
-image: dregistry.gahr.dev/ci-go-runner
+image: golang:alpine
 
 # Keep vendor dependencies between jobs (results in lower build times)
 cache: &global_cache
@@ -13,9 +13,12 @@ before_script:
 
 stages:
   - dependencies
+  - pre-build
   - test
   - build
   - deploy
+
+# --- dependencies stage ---
 
 make dependencies: # pull cache, update dependencies, push cache
   cache:
@@ -24,8 +27,47 @@ make dependencies: # pull cache, update dependencies, push cache
     # override the policy
     policy: pull-push
   stage: dependencies
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make dep
+  tags:
+    - GameBase
+    - docker
+
+# --- pre-build stage (generate server stub via openapi) ---
+
+generate openapi:
+  image: golang:latest
+  script:
+    - apt update && apt install -y curl
+    - curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    - apt update && apt install -y nodejs default-jre rsync
+    - make generate
+    - BRANCH=development
+    - git config user.email "info@game-base.de" && git config user.name "Swagger Server Generator"
+    - git stash push -u && git checkout -B $BRANCH && git stash pop
+    - git add api* openapi*
+    - git commit -m "Generate server from API specification $(cat swagger-version) https://gitlab.tandashi.de/GameBase/swagger-rest-api/-/commit/$(cat swagger-commit)"
+    - which ssh-agent || ( apt-get update -qy && apt-get install openssh-client -qqy )
+    - eval `ssh-agent -s`
+    - echo "${DEPLOY_KEY_PRIVATE}" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "${DEPLOY_KEY_PUBLIC}" >> ~/.ssh/id_rsa.pub
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - git config --unset remote.origin.url
+    - git config --add remote.origin.url "git@${CI_SERVER_HOST}:${CI_PROJECT_PATH}.git"
+    - GIT_TRACE=1 git push --set-upstream origin $BRANCH && exit 1
+  stage: pre-build
+  artifacts:
+    paths:
+      - .
+  only:
+    variables:
+      - $GENERATE_OPENAPI == "true"
+    refs:
+      - development
   tags:
     - GameBase
     - docker
@@ -34,6 +76,8 @@ make dependencies: # pull cache, update dependencies, push cache
 
 unit tests:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make test
   tags:
@@ -42,22 +86,17 @@ unit tests:
 
 race detector:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make race
   tags:
     - GameBase
     - docker
 
-memory sanitizer:
-  stage: test
-  script:
-    - make msan
-  tags:
-    - GameBase
-    - docker
-
 code coverage:
   stage: test
+  image: golang:latest
   script:
     - make coverage
   tags:
@@ -66,10 +105,12 @@ code coverage:
 
 code coverage report:
   stage: test
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
     - make coverhtml
   only:
-  - master
+    - master
   artifacts:
     paths:
       - coverage.html
@@ -79,6 +120,11 @@ code coverage report:
 
 lint code:
   stage: test
+  before_script:
+    - export GOPATH="$CI_PROJECT_DIR/.cache"
+    - apk add --update alpine-sdk bash
+    - go get -u golang.org/x/lint/golint
+    - PATH="$GOPATH/bin:$PATH"
   script:
     - make lint
   allow_failure: true
@@ -99,10 +145,14 @@ sonarqube-check:
 
 # --- tests end ---
 
+# --- build stage ---
+
 build:
   stage: build
+  before_script:
+    - apk add --update alpine-sdk bash
   script:
-    - make
+    - make build
   artifacts:
     paths:
       - out
@@ -110,14 +160,54 @@ build:
     - GameBase
     - docker
 
+
+# --- deploy stage ---
+
+publish docker image:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  except:
+    - master
+  tags:
+    - GameBase
+    - docker
+
+publish docker image latest:
+  stage: deploy
+  image: docker
+  cache: {}  # no cache required for deployment
+  before_script:
+    - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker build --pull -t "gamebaseproject/backend:$CI_COMMIT_REF_SLUG" -t gamebaseproject/backend:latest .
+    - docker push "gamebaseproject/backend:$CI_COMMIT_REF_SLUG"
+  only:
+    - master
+  tags:
+    - GameBase
+    - docker
+
 deploy master:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-live .
     - docker stop gamebase-backend-live || true
     - docker rm gamebase-backend-live || true
-    - docker run -d --restart unless-stopped -p 42070:80 --name gamebase-backend-live gamebase-backend-live
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42070:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-live
+      gamebase-backend-live
   only:
     - master
   tags:
@@ -127,19 +217,30 @@ deploy master:
 deploy dev:
   stage: deploy
   script:
-    - cp ~/.kube/config config
     - docker build -t gamebase-backend-dev .
     - docker stop gamebase-backend-dev || true
     - docker rm gamebase-backend-dev || true
-    - docker run -d --restart unless-stopped -p 42069:80 --name gamebase-backend-dev gamebase-backend-dev
+    - >
+      docker run
+      --detach
+      --restart unless-stopped
+      -p 42069:80
+      -e TZ=Europe/Berlin
+      --mount type=bind,source=$(readlink -f ~/.kube/config),target=/root/.kube/config,readonly
+      --name gamebase-backend-dev
+      gamebase-backend-dev
   except:
-    - master
+    refs:
+      - master
+    variables:
+      - $GENERATE_OPENAPI == "true"
   tags:
     - GameBase
     - shell
 
 pages:
   stage: deploy
+  image: alpine
   script:
     - mkdir public
     - cp coverage.html public
