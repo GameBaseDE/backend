@@ -151,12 +151,12 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
 	//base64secret = "{\"auths\": {\"url.to.server\": {\"auth\": \"base64=\"}}}"
 	secretMap := map[string]string{".dockerconfigjson": base64secret}
-	return k.CreateSecret(namespace, name, secretMap)
+	return k.CreateSecret(namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
 }
 
-func (k kubernetesClient) CreateSecret(namespace string, name string, stringData map[string]string) (*v1.Secret, error) {
+func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
 	secret := v1.Secret{
-		Type: v1.SecretTypeDockerConfigJson,
+		Type: secretType,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
