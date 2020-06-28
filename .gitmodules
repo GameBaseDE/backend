@@ -1,0 +1,3 @@
+[submodule "gameservertemplates"]
+	path = gameservertemplates
+	url = https://gitlab.tandashi.de/GameBase/gameserver.git
