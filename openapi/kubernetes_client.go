@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	uuidGen "github.com/twinj/uuid"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,6 +166,7 @@ func (k kubernetesClient) CreateUserSecret(namespace string, name string, user G
 }
 
 func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
+	_, _ = k.CreateNamespace(namespace)
 	secret := v1.Secret{
 		Type: secretType,
 		ObjectMeta: metav1.ObjectMeta{
@@ -262,6 +264,56 @@ func (k kubernetesClient) SetUserSecret(namespace string, user GamebaseUser) err
 	_, err = k.UpdateSecret(namespace, secret)
 
 	return err
+}
+
+// Get uuid of the user or generate a new one if the user doesn't exist and return it.
+// The returned bool is true if the uuid had to be generated
+func (k kubernetesClient) GetUuid(email string) (string, bool, error) {
+	secret, err := k.GetSecret("gamebaseprefix", "user-namespace")
+
+	if uuid, exists := secret.Data[email]; exists {
+		return string(uuid), false, nil
+	}
+
+	uuid, err := k.NewUuid(email)
+
+	return uuid, true, err
+}
+
+// Generate a new uuid for the user with the given email
+// Returns the uuid
+// Warning: Do not call this function for purposes other
+//          than generating a new user account because the
+//          existing namespace of that user will become
+//         	inaccessible (requiring manual deletion via kubectl)!
+func (k kubernetesClient) NewUuid(email string) (string, error) {
+	uuid := uuidGen.NewV4().String()
+	secretMap := map[string]string{
+		email: uuid,
+	}
+
+	if _, err := k.CreateSecret("gamebaseprefix", "user-namespace", v1.SecretTypeOpaque, secretMap); err != nil {
+		return "", err
+	}
+
+	secret, err := k.GetSecret("gamebaseprefix", "user-namespace")
+	if err != nil {
+		return "", err
+	}
+
+	secret.Data[email] = []byte(uuid)
+
+	_, err = k.UpdateSecret("gamebaseprefix", secret)
+	return uuid, err
+}
+
+func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
+	namespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	return k.Client.CoreV1().Namespaces().Create(&namespace)
 }
 
 /*return k.Client.CoreV1().Namespaces().List(metav1.ListOptions{
