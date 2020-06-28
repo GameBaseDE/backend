@@ -47,7 +47,7 @@ func (hr *httpRequestAuthenticator) Logout(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 }
 
 // Register - Register a user and return a JWT with the user object
