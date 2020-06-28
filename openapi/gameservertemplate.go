@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"errors"
+	"github.com/twinj/uuid"
 )
 
 type gameServerTemplate struct {
@@ -34,6 +35,31 @@ func (gst *gameServerTemplate) Rename() error {
 		return err
 	}
 	return nil
+}
+
+func (gst *gameServerTemplate) GetUniqueGameServer() gameServer {
+	uniqueGameServer := gameServer{
+		configmap:  gst.configmap,
+		pvc:        gst.pvc,
+		deployment: gst.deployment,
+		service:    gst.service,
+	}
+	//Populate user-definable Gameserver name
+	uniqueGameServer.deployment.Labels["name"] = gst.templateName
+	//Generate UUID
+	uuid := uuid.NewV4().String()
+	//Set UUID in metadata.Labels
+	uniqueGameServer.configmap.Labels["deploymentUUID"] = uuid
+	uniqueGameServer.pvc.Labels["deploymentUUID"] = uuid
+	uniqueGameServer.deployment.Labels["deploymentUUID"] = uuid
+	uniqueGameServer.deployment.Spec.Template.Labels["deploymentUUID"] = uuid
+	uniqueGameServer.service.Labels["deploymentUUID"] = uuid
+	//Get Label reference to deployment.spec.template.metadata.labels
+	deploymentSelectorLabels := uniqueGameServer.deployment.Spec.Template.Labels
+	//Adjust Selectors
+	uniqueGameServer.deployment.Spec.Selector.MatchLabels = deploymentSelectorLabels
+	uniqueGameServer.service.Spec.Selector = deploymentSelectorLabels
+	return uniqueGameServer
 }
 
 func (gst *gameServerTemplate) Validate(templatePrefix string) error {

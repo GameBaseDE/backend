@@ -8,11 +8,12 @@ import (
 type httpRequestKubernetesTranslator struct {
 	nextHandler httpRequestHandler
 	api         API
+	cl          kubernetesClient
 	templates   []*gameServerTemplate
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{api: NewAPI(), templates: readGameServerTemplates()}
+	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
 }
 
 // Login - Login a user and return a JWT with the user object
@@ -92,11 +93,18 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 	if request, exists := c.Get("request"); exists {
 		if request, ok := request.(GameContainerDeployment); ok {
-			if result, err := hr.api.Deploy(request); err != nil {
+			_ = request
+			if err := hr.cl.DeployTemplate(c.GetString("namespace"), hr.templates[0]); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			} else {
 				h := gin.H{"status": "ok"}
-				h["message"] = AsGameServerStatus(result)
+				//h["message"] = AsGameServerStatus(result)
+				h["message"] = GameContainerStatus{
+					Id:                "1",
+					Status:            "??",
+					Configuration:     GameContainerConfiguration{},
+					GameServerDetails: nil,
+				}
 				c.JSON(http.StatusCreated, h)
 			}
 
@@ -111,6 +119,15 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 
 // StartContainer - Start a game server/container
 func (hr *httpRequestKubernetesTranslator) StartContainer(c *gin.Context) {
+	hr.cl.GetNamespaceList()
+	hr.cl.GetConfigMaps(c.GetString("namespace"))
+	hr.cl.GetPVCs(c.GetString("namespace"))
+	hr.cl.GetDeploymentList(c.GetString("namespace"))
+	hr.cl.GetServices(c.GetString("namespace"))
+	hr.cl.GetPVCs2(c.GetString("namespace"), "gameserver=cuberite,deployment=gameserver")
+	//hr.cl.UpdatePVC("gambaseprefix-testuser","cuberite")
+	hr.cl.CreateDockerConfigSecret(c.GetString("namespace"), "regcred", "aaabbbcccddd")
+	hr.cl.SetDefaultServiceAccountImagePullSecret(c.GetString("namespace"), "regcred")
 	if id := c.GetString("id"); id != "" {
 		if result, err := hr.api.Start(id); err == nil {
 			h := gin.H{"status": "ok"}
