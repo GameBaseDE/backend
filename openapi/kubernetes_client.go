@@ -154,6 +154,16 @@ func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string
 	return k.CreateSecret(namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
 }
 
+// Create a kubernetes secret which stores the user information
+func (k kubernetesClient) CreateUserSecret(namespace string, name string, user GamebaseUser) (*v1.Secret, error) {
+	secretMap := map[string]string{
+		"name":     user.Name,
+		"email":    user.Email,
+		"password": user.Password,
+	}
+	return k.CreateSecret(namespace, name, v1.SecretTypeOpaque, secretMap)
+}
+
 func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
 	secret := v1.Secret{
 		Type: secretType,
@@ -212,6 +222,57 @@ func (k kubernetesClient) UpdatePVC(namespace string, name string) (*v1.Persiste
 	return k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(pvc)
 }
 
-func (k kubernetesClient) GetSecret(namespace string, selector string) (*v1.SecretList, error) {
+func (k kubernetesClient) GetSecrets(namespace string, selector string) (*v1.SecretList, error) {
 	return k.Client.CoreV1().Secrets(namespace).List(metav1.ListOptions{LabelSelector: selector})
 }
+
+func (k kubernetesClient) GetSecret(namespace string, name string) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+}
+
+func (k kubernetesClient) UpdateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Update(secret)
+}
+
+// Set the user information either by creating the kubernetes secret
+// or if it already exists, updating it
+func (k kubernetesClient) SetUserSecret(namespace string, user GamebaseUser) error {
+	secretMap := map[string]string{
+		"name":     user.Name,
+		"email":    user.Email,
+		"password": user.Password,
+	}
+
+	_, err := k.CreateUserSecret(namespace, "user", user)
+	if err == nil {
+		return nil
+	}
+
+	secret, err := k.GetSecret(namespace, "user")
+	if err != nil {
+		return err
+	}
+
+	for key, value := range secretMap {
+		if value == "" {
+			secret.Data[key] = []byte(value)
+		}
+	}
+
+	_, err = k.UpdateSecret(namespace, secret)
+
+	return err
+}
+
+/*return k.Client.CoreV1().Namespaces().List(metav1.ListOptions{
+TypeMeta:            metav1.TypeMeta{},
+LabelSelector:       "",
+FieldSelector:       "",
+Watch:               false,
+AllowWatchBookmarks: false,
+ResourceVersion:     "",
+TimeoutSeconds:      nil,
+Limit:               0,
+Continue:            "",
+})
+}*/
