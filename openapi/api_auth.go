@@ -16,15 +16,15 @@ import (
 
 // AuthLoginPost - Login a user and return a JWT with the user object
 func AuthLoginPost(c *gin.Context) {
-	//TODO: authenticator.AuthLoginPost(c)
+	authenticator.AuthLoginPost(c)
 }
 
 // AuthLogoutDelete - Invalidate the passed JWT
 func AuthLogoutDelete(c *gin.Context) {
-	//TODO: authenticator.AuthLogoutDelete(c)
+	authenticator.AuthLogoutDelete(c)
 }
 
 // AuthRegisterPost - Register a user and return a JWT with the user object
 func AuthRegisterPost(c *gin.Context) {
-	//TODO: authenticator.AuthRegisterPost(c)
+	// TODO: authenticator.AuthRegisterPost(c)
 }
