@@ -13,6 +13,48 @@ func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 	return &httpRequestAuthenticator{nextHandler: newHttpRequestParser()}
 }
 
+// Login - Login a user and return a JWT with the user object
+func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
+	var request UserLogin
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !isValidUserLogin(request) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
+		return
+	}
+
+	token, err := createToken(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, User{
+		Email:    "test@example.com",
+		FullName: "Mr. Test",
+		Token:    token.AccessToken,
+	})
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestAuthenticator) Logout(c *gin.Context) {
+	if email := extractEmail(c); email != "" {
+		removeToken(email)
+		c.JSON(http.StatusOK, gin.H{"success": "success"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
+}
+
+// Register - Register a user and return a JWT with the user object
+func (hr *httpRequestAuthenticator) Register(c *gin.Context) {
+	// TODO: authenticator.AuthRegisterPost(c)
+}
+
 // ListTemplates - Get a list of all available game server images
 func (hr *httpRequestAuthenticator) ListTemplates(c *gin.Context) {
 	if !isAuthorized(c) {
@@ -83,39 +125,4 @@ func (hr *httpRequestAuthenticator) DeleteContainer(c *gin.Context) {
 		return
 	}
 	hr.nextHandler.DeleteContainer(c)
-}
-
-func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
-	var request UserLogin
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !isValidUserLogin(request) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
-		return
-	}
-
-	token, err := createToken(request.Email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, User{
-		Email:    "test@example.com",
-		FullName: "Mr. Test",
-		Token:    token.AccessToken,
-	})
-}
-
-func (hr *httpRequestAuthenticator) AuthLogoutDelete(c *gin.Context) {
-	if email := extractEmail(c); email != "" {
-		removeToken(email)
-		c.JSON(http.StatusOK, gin.H{"success": "success"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
 }

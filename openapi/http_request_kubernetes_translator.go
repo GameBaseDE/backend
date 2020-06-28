@@ -7,10 +7,27 @@ import (
 
 type httpRequestKubernetesTranslator struct {
 	nextHandler httpRequestHandler
+	api         API
+	templates   []*gameServerTemplate
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{}
+	return &httpRequestKubernetesTranslator{api: NewAPI(), templates: readGameServerTemplates()}
+}
+
+// Login - Login a user and return a JWT with the user object
+func (hr *httpRequestKubernetesTranslator) Login(c *gin.Context) {
+	return
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestKubernetesTranslator) Logout(c *gin.Context) {
+	return
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
+	return
 }
 
 // ListTemplates - Get a list of all available game server images
@@ -22,7 +39,7 @@ func (hr *httpRequestKubernetesTranslator) ListTemplates(c *gin.Context) {
 func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 	id := c.GetString("id")
 	if id == "" {
-		if result, err := api.List(); err == nil {
+		if result, err := hr.api.List(); err == nil {
 			h := make([]GameContainerStatus, 0)
 			for _, status := range result {
 				h = append(h, *AsGameServerStatus(&status))
@@ -36,7 +53,7 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 		return
 	}
 
-	if result, err := api.Status(id); err == nil {
+	if result, err := hr.api.Status(id); err == nil {
 		h := gin.H{"status": "ok"}
 		h["message"] = AsGameServerStatus(result)
 		c.JSON(http.StatusOK, h)
@@ -51,7 +68,7 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 	if id := c.GetString("id"); id != "" {
 		if request, exists := c.Get("request"); exists {
 			if request, ok := request.(GameContainerConfiguration); ok {
-				if result, err := api.Configure(id, request); err != nil {
+				if result, err := hr.api.Configure(id, request); err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				} else {
 					h := gin.H{"status": "ok"}
@@ -75,7 +92,7 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 	if request, exists := c.Get("request"); exists {
 		if request, ok := request.(GameContainerDeployment); ok {
-			if result, err := api.Deploy(request); err != nil {
+			if result, err := hr.api.Deploy(request); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			} else {
 				h := gin.H{"status": "ok"}
@@ -95,7 +112,7 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 // StartContainer - Start a game server/container
 func (hr *httpRequestKubernetesTranslator) StartContainer(c *gin.Context) {
 	if id := c.GetString("id"); id != "" {
-		if result, err := api.Start(id); err == nil {
+		if result, err := hr.api.Start(id); err == nil {
 			h := gin.H{"status": "ok"}
 			h["message"] = result
 			c.JSON(http.StatusAccepted, h)
@@ -110,7 +127,7 @@ func (hr *httpRequestKubernetesTranslator) StartContainer(c *gin.Context) {
 // StopContainer - Stop a game server/container
 func (hr *httpRequestKubernetesTranslator) StopContainer(c *gin.Context) {
 	if id := c.GetString("id"); id != "" {
-		if result, err := api.Stop(id); err == nil {
+		if result, err := hr.api.Stop(id); err == nil {
 			h := gin.H{"status": "ok"}
 			h["message"] = result
 			c.JSON(http.StatusAccepted, h)
@@ -125,7 +142,7 @@ func (hr *httpRequestKubernetesTranslator) StopContainer(c *gin.Context) {
 // RestartContainer - Restart a game server/container
 func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
 	if id := c.GetString("id"); id != "" {
-		if result, err := api.Restart(id); err == nil {
+		if result, err := hr.api.Restart(id); err == nil {
 			h := gin.H{"status": "ok"}
 			h["message"] = AsGameServerStatus(result)
 			c.JSON(http.StatusAccepted, h)
@@ -140,7 +157,7 @@ func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
 	if id := c.GetString("id"); id != "" {
-		if err := api.Destroy(id); err != nil {
+		if err := hr.api.Destroy(id); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 			return
 		}
