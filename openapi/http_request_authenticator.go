@@ -52,7 +52,7 @@ func (hr *httpRequestAuthenticator) Logout(c *gin.Context) {
 
 // Register - Register a user and return a JWT with the user object
 func (hr *httpRequestAuthenticator) Register(c *gin.Context) {
-	// TODO: authenticator.AuthRegisterPost(c)
+	hr.nextHandler.Register(c)
 }
 
 // ListTemplates - Get a list of all available game server images
