@@ -21,7 +21,13 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	if !isValidUserLogin(request) {
+	validLogin, err := isValidLogin(request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !validLogin {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}
@@ -32,9 +38,16 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
+	k := NewKubernetesClient()
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, User{
-		Email:    "test@example.com",
-		FullName: "Mr. Test",
+		Email:    request.Email,
+		FullName: user.Name,
 		Token:    token.AccessToken,
 	})
 }
@@ -133,6 +146,46 @@ func (hr *httpRequestAuthenticator) DeleteContainer(c *gin.Context) {
 	}
 	extractNamespace(c)
 	hr.nextHandler.DeleteContainer(c)
+}
+
+func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
+	var request UserLogin
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	valid, err := isValidLogin(request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
+		return
+	}
+
+	token, err := createToken(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, User{
+		Email:    "test@example.com",
+		FullName: "Mr. Test",
+		Token:    token.AccessToken,
+	})
+}
+
+func (hr *httpRequestAuthenticator) AuthLogoutDelete(c *gin.Context) {
+	if email := extractEmail(c); email != "" {
+		removeToken(email)
+		c.JSON(http.StatusOK, gin.H{"success": "success"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
 }
 
 // Sets the target namespace based on the Request JWT
