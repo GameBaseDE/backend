@@ -13,7 +13,7 @@ type httpRequestKubernetesTranslator struct {
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
+	return &httpRequestKubernetesTranslator{api: API{}, cl: NewKubernetesClient(), templates: readGameServerTemplates()}
 }
 
 // Login - Login a user and return a JWT with the user object
