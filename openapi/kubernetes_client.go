@@ -13,19 +13,10 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 type kubernetesClient struct {
 	Client *kubernetes.Clientset
-}
-
-var kubernetesClientInstance kubernetesClient
-var kubernetesClientOnce = sync.Once{}
-
-func NewKubernetesClient() kubernetesClient {
-	kubernetesClientOnce.Do(func() { kubernetesClientInstance = newKubernetesClientset() })
-	return kubernetesClientInstance
 }
 
 func newKubernetesClientset() kubernetesClient {

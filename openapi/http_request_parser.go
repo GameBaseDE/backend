@@ -13,6 +13,10 @@ func newHttpRequestParser() *httpRequestParser {
 	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
 }
 
+func (hr *httpRequestParser) kubernetesClient() kubernetesClient {
+	return hr.nextHandler.kubernetesClient()
+}
+
 // Login - Login a user and return a JWT with the user object
 func (hr *httpRequestParser) Login(c *gin.Context) {
 	return

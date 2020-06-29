@@ -13,7 +13,11 @@ type httpRequestKubernetesTranslator struct {
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{api: API{}, cl: NewKubernetesClient(), templates: readGameServerTemplates()}
+	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
+}
+
+func (hr *httpRequestKubernetesTranslator) kubernetesClient() kubernetesClient {
+	return hr.cl
 }
 
 // Login - Login a user and return a JWT with the user object
@@ -28,6 +32,8 @@ func (hr *httpRequestKubernetesTranslator) Logout(c *gin.Context) {
 
 // Logout - Invalidate the passed JWT
 func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
+	k := hr.kubernetesClient()
+
 	if request, exists := c.Get("request"); exists {
 		if user, ok := request.(GamebaseUser); ok {
 			uuid, _, err := hr.cl.GetUuid(user.Email)
@@ -47,7 +53,6 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 				return
 			}
 
-			k := NewKubernetesClient()
 			user, err := k.GetUserSecret(user.Email)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
