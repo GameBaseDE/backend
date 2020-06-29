@@ -39,29 +39,28 @@ func (hr *httpRequestKubernetesTranslator) ListTemplates(c *gin.Context) {
 // GetStatus - Query status of all deployments
 func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 	id := c.GetString("id")
+	existingGameServers := []*gameServer{}
 	if id == "" {
-		if result, err := hr.api.List(); err == nil {
-			h := make([]GameContainerStatus, 0)
-			for _, status := range result {
-				h = append(h, *AsGameServerStatus(&status))
-			}
-
-			c.JSON(http.StatusOK, h)
-		} else {
+		gameServers, err := hr.cl.GetGameServerList(getNamespace(c))
+		existingGameServers = gameServers
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
-
-		return
-	}
-
-	if result, err := hr.api.Status(id); err == nil {
-		h := gin.H{"status": "ok"}
-		h["message"] = AsGameServerStatus(result)
-		c.JSON(http.StatusOK, h)
-		return
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		existingGameServer, err := hr.cl.GetGameServer(getNamespace(c), id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		existingGameServers = append(existingGameServers, existingGameServer)
 	}
+	gameContainerStatuses := []*GameContainerStatus{}
+	for _, gameServer := range existingGameServers {
+		gameContainerStatus := gameServer.readGameContainerStatus()
+		gameContainerStatuses = append(gameContainerStatuses, &gameContainerStatus)
+	}
+	c.JSON(http.StatusOK, gameContainerStatuses)
 }
 
 // ConfigureContainer - Configure a game server based on POST body
@@ -91,30 +90,27 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 
 // DeployContainer - Deploy a game server based on POST body
 func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
-	if request, exists := c.Get("request"); exists {
-		if request, ok := request.(GameContainerDeployment); ok {
-			_ = request
-			if err := hr.cl.DeployTemplate(c.GetString("namespace"), hr.templates[0]); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			} else {
-				h := gin.H{"status": "ok"}
-				//h["message"] = AsGameServerStatus(result)
-				h["message"] = GameContainerStatus{
-					Id:                "1",
-					Status:            "??",
-					Configuration:     GameContainerConfiguration{},
-					GameServerDetails: nil,
-				}
-				c.JSON(http.StatusCreated, h)
-			}
-
-			return
-		}
-
+	request, exists := c.Get("request")
+	if !exists {
+		panic("request is unset")
+	}
+	deploymentRequest, ok := request.(GameContainerDeployment)
+	if !ok {
 		panic("request is of invalid type")
 	}
-
-	panic("request is unset")
+	template, err := findGameServerTemplate(deploymentRequest.TemplatePath, hr.templates)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	gameServer, err := hr.cl.DeployTemplate(getNamespace(c), template)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: gameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	h := gin.H{"status": "ok"}
+	c.JSON(http.StatusCreated, h)
+	return
 }
 
 // StartContainer - Start a game server/container
@@ -187,4 +183,12 @@ func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
 
 // Tests if a GameServer Id exists
 func (hr *httpRequestKubernetesTranslator) existstGameServer(id string) {
+}
+
+func getNamespace(c *gin.Context) string {
+	if namespace := c.GetString("namespace"); namespace != "" {
+		return namespace
+	} else {
+		panic("No Namespace in gin Context")
+	}
 }

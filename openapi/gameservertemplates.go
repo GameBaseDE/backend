@@ -137,3 +137,12 @@ func parseKubernetesTemplate(filePath string, kind string) (runtime.Object, erro
 	}
 	return kubernetesTemplate, nil
 }
+
+func findGameServerTemplate(name string, templateList []*gameServerTemplate) (*gameServerTemplate, error) {
+	for _, template := range templateList {
+		if template.templateName == name {
+			return template, nil
+		}
+	}
+	return nil, errors.New("GameServerTemplate " + name + "not found!")
+}

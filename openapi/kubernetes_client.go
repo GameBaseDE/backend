@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,18 +37,77 @@ func newKubernetesClientset() kubernetesClient {
 	return kubernetesClient{clientset}
 }
 
-func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerTemplate) error {
+func (k kubernetesClient) GetGameServerList(namespace string) ([]*gameServer, error) {
+	allDeployments, err := k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	gameServers := make([]*gameServer, 0)
+	for _, deployment := range allDeployments.Items {
+		uuid, exists := deployment.Labels["deploymentUUID"]
+		if !exists {
+			fmt.Println("Found Deployment " + deployment.Name + " without deploymentUUID")
+		}
+		uuidGameServer, err := k.GetGameServer(namespace, uuid)
+		if err != nil {
+			fmt.Println("Could not find complete GameServer for UUID:" + uuid)
+			fmt.Println(err)
+		} else {
+			gameServers = append(gameServers, uuidGameServer)
+		}
+	}
+	return gameServers, nil
+}
+
+func (k kubernetesClient) GetGameServer(namespace string, uuid string) (*gameServer, error) {
+	existingConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	if err != nil {
+		return nil, err
+	}
+	if len(existingConfigMap.Items) > 1 {
+		return nil, errors.New("Multiple ConfigMaps with matching UUID")
+	}
+	existingPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	if err != nil {
+		return nil, err
+	}
+	if len(existingPVC.Items) > 1 {
+		return nil, errors.New("Multiple PVCs with matching UUID")
+	}
+	existingDeployment, err := k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	if err != nil {
+		return nil, err
+	}
+	if len(existingDeployment.Items) > 1 {
+		return nil, errors.New("Multiple Deployments with matching UUID")
+	}
+	existingService, err := k.Client.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	if err != nil {
+		return nil, err
+	}
+	if len(existingService.Items) > 1 {
+		return nil, errors.New("Multiple Services with matching UUID")
+	}
+	return &gameServer{
+		configmap:  kubernetesComponentConfigMap{existingConfigMap.Items[0]},
+		pvc:        kubernetesComponentPVC{existingPVC.Items[0]},
+		deployment: kubernetesComponentDeployment{existingDeployment.Items[0]},
+		service:    kubernetesComponentService{existingService.Items[0]},
+	}, nil
+}
+
+func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerTemplate) (*gameServer, error) {
 	deploymentPayload := template.GetUniqueGameServer()
 	//Deploy ConfigMap
 	deployedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Create(&deploymentPayload.configmap.ConfigMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println("Deployed ConfigMap: " + deployedConfigMap.GetName())
 	//Deploy PersistentVolumeClaim
 	deployedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Create(&deploymentPayload.pvc.PersistentVolumeClaim)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println("Deployed PVC: " + deployedPVC.GetName())
 	//Adapt Deployment with name references to the generated Names
@@ -71,16 +131,21 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 	//Deploy Deployment
 	deployedDeployment, err := k.Client.AppsV1().Deployments(namespace).Create(&payloadDeployment)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println("Deployed Deployment: " + deployedDeployment.GetName())
 	//Deploy Service
 	deployedService, err := k.Client.CoreV1().Services(namespace).Create(&deploymentPayload.service.Service)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println("Deployed Service: " + deployedService.GetName())
-	return nil
+	return &gameServer{
+		configmap:  kubernetesComponentConfigMap{*deployedConfigMap},
+		pvc:        kubernetesComponentPVC{*deployedPVC},
+		deployment: kubernetesComponentDeployment{*deployedDeployment},
+		service:    kubernetesComponentService{*deployedService},
+	}, nil
 }
 
 func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
