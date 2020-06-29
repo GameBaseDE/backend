@@ -25,7 +25,7 @@ type TokenDetails struct {
 }
 
 // Create a pair jwt tokens for authentication and refresh
-func createToken(email string) (string, string, error) {
+func createToken(email string, name string) (string, string, error) {
 	const accessDuration = time.Minute * 15
 	const refreshDuration = time.Hour * 24 * 7
 
@@ -34,6 +34,7 @@ func createToken(email string) (string, string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["access_uuid"] = uuid.NewV4().String()
 	atClaims["user_email"] = email
+	atClaims["user_name"] = name
 	atClaims["exp"] = time.Now().UTC().Add(accessDuration).Unix()
 	at := jwt.NewWithClaims(defaultSigningMethod(), atClaims)
 	access, err := at.SignedString(hmacSampleSecret())
@@ -44,7 +45,8 @@ func createToken(email string) (string, string, error) {
 	// refresh access
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = uuid.NewV4().String()
-	rtClaims["user_email"] = email
+	atClaims["user_email"] = email
+	atClaims["user_name"] = name
 	rtClaims["exp"] = time.Now().UTC().Add(refreshDuration).Unix()
 	rt := jwt.NewWithClaims(defaultSigningMethod(), rtClaims)
 	refresh, err := rt.SignedString(hmacSampleSecret())

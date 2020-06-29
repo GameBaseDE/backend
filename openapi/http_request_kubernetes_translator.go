@@ -47,7 +47,7 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 				return
 			}
 
-			token, _, err := createToken(user.Email)
+			token, _, err := createToken(user.Email, user.Name)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
