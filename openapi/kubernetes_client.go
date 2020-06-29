@@ -283,9 +283,10 @@ func (k kubernetesClient) GetUuid(email string) (string, bool, error) {
 func (k kubernetesClient) NewUuid(email string) (string, error) {
 	encoded := encodeEmail(email)
 
-	uuid := uuidGen.NewV4().String()
+	uuid := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user")
+	uuidString := uuidGen.Formatter(uuid, uuidGen.FormatHex)
 	secretMap := map[string]string{
-		encoded: uuid,
+		encoded: uuidString,
 	}
 
 	secret, err := k.CreateSecret(defaultNamespace, "user-namespace", v1.SecretTypeOpaque, secretMap)
@@ -298,10 +299,10 @@ func (k kubernetesClient) NewUuid(email string) (string, error) {
 		return "", err
 	}
 
-	secret.Data[encoded] = []byte(uuid)
+	secret.Data[encoded] = []byte(uuidString)
 
 	_, err = k.UpdateSecret(defaultNamespace, secret)
-	return uuid, err
+	return uuidString, err
 }
 
 func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
