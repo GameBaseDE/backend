@@ -36,12 +36,7 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 
 	if request, exists := c.Get("request"); exists {
 		if user, ok := request.(GamebaseUser); ok {
-			uuid, _, err := hr.cl.GetUuid(user.Email)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			}
-
-			namespace := defaultNamespaceUser + uuid
+			namespace := c.MustGet("namespace").(string)
 			if err := hr.cl.SetUserSecret(namespace, user); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
