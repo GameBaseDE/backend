@@ -13,6 +13,21 @@ func newHttpRequestParser() *httpRequestParser {
 	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
 }
 
+// Login - Login a user and return a JWT with the user object
+func (hr *httpRequestParser) Login(c *gin.Context) {
+	return
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestParser) Logout(c *gin.Context) {
+	return
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestParser) Register(c *gin.Context) {
+	return
+}
+
 // ListTemplates - Get a list of all available game server images
 func (hr *httpRequestParser) ListTemplates(c *gin.Context) {
 	//no parameter checks for list

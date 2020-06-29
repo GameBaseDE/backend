@@ -57,7 +57,7 @@ func NewRouter() *gin.Engine {
 
 // Index is the index handler.
 func Index(c *gin.Context) {
-	c.String(http.StatusOK, "Hello World!")
+	c.String(http.StatusOK, "This is the GameBase Backend!")
 }
 
 var routes = Routes{
@@ -72,21 +72,21 @@ var routes = Routes{
 		"AuthLoginPost",
 		http.MethodPost,
 		"/auth/login",
-		AuthLoginPost,
+		Login,
 	},
 
 	{
 		"AuthLogoutDelete",
 		http.MethodDelete,
 		"/auth/logout",
-		AuthLogoutDelete,
+		Logout,
 	},
 
 	{
 		"AuthRegisterPost",
 		http.MethodPost,
 		"/auth/register",
-		AuthRegisterPost,
+		Register,
 	},
 
 	{
@@ -145,6 +145,3 @@ var routes = Routes{
 		StopContainer,
 	},
 }
-
-var api = NewAPI()
-var authenticator = newHttpRequestAuthenticator()

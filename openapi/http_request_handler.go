@@ -5,6 +5,9 @@ import (
 )
 
 type httpRequestHandler interface {
+	Login(c *gin.Context)
+	Logout(c *gin.Context)
+	Register(c *gin.Context)
 	ListTemplates(c *gin.Context)
 	GetStatus(c *gin.Context)
 	ConfigureContainer(c *gin.Context)
