@@ -13,15 +13,21 @@ func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 	return &httpRequestAuthenticator{nextHandler: newHttpRequestParser()}
 }
 
+func (hr *httpRequestAuthenticator) kubernetesClient() kubernetesClient {
+	return hr.nextHandler.kubernetesClient()
+}
+
 // Login - Login a user and return a JWT with the user object
 func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
+	k := hr.kubernetesClient()
+
 	var request UserLogin
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	validLogin, err := isValidLogin(request)
+	validLogin, err := isValidLogin(request, k)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -38,7 +44,6 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	k := NewKubernetesClient()
 	user, err := k.GetUserSecret(request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -149,13 +154,15 @@ func (hr *httpRequestAuthenticator) DeleteContainer(c *gin.Context) {
 }
 
 func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
+	k := hr.nextHandler.kubernetesClient()
+
 	var request UserLogin
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	valid, err := isValidLogin(request)
+	valid, err := isValidLogin(request, k)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

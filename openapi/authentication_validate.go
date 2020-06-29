@@ -5,8 +5,7 @@ import (
 	"strings"
 )
 
-func isValidLogin(request UserLogin) (bool, error) {
-	k := NewKubernetesClient()
+func isValidLogin(request UserLogin, k kubernetesClient) (bool, error) {
 	user, err := k.GetUserSecret(request.Email)
 	if err != nil {
 		return false, err
