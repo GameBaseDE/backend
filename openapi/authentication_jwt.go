@@ -1,8 +1,10 @@
 package openapi
 
 import (
+	"github.com/denisbrodbeck/machineid"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/twinj/uuid"
+	"log"
 	"os"
 	"time"
 )
@@ -12,7 +14,16 @@ func defaultSigningMethod() *jwt.SigningMethodHMAC {
 }
 
 func hmacSampleSecret() []byte {
-	return []byte(os.Getenv("ACCESS_SECRET"))
+	if secret := os.Getenv("ACCESS_SECRET"); secret != "" {
+		return []byte(secret)
+	} else {
+		log.Println("Could not read ENV $ACCESS_SECRET")
+		id, err := machineid.ProtectedID("GameBase")
+		if err != nil {
+			log.Fatal("Failed to alternatively read unique OS id")
+		}
+		return []byte(id)
+	}
 }
 
 type TokenDetails struct {
