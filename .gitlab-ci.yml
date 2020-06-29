@@ -11,6 +11,9 @@ cache: &global_cache
 before_script:
   - export GOPATH="$CI_PROJECT_DIR/.cache"
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 stages:
   - dependencies
   - pre-build
