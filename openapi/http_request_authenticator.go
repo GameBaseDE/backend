@@ -38,20 +38,20 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	token, _, err := createToken(request.Email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	user, err := k.GetUserSecret(request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	token, _, err := createToken(user.Email, user.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, User{
-		Email:    request.Email,
+		Email:    user.Email,
 		FullName: user.Name,
 		Token:    token,
 	})
@@ -171,15 +171,21 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 		return
 	}
 
-	token, _, err := createToken(request.Email)
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, _, err := createToken(user.Email, user.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, User{
-		Email:    "test@example.com",
-		FullName: "Mr. Test",
+		Email:    user.Email,
+		FullName: user.Name,
 		Token:    token,
 	})
 }
