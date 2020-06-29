@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,7 @@ func ParseJwt(request *gin.Context) (*jwt.Token, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	token, err := jwt.Parse(s, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(s, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -61,11 +62,16 @@ func extractJwt(request *gin.Context) string {
 // Lookup the email address from the authentication token
 func extractEmail(request *gin.Context) (string, error) {
 	token, err := ParseJwt(request)
-	if err == nil && token != nil {
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			return claims["user_email"].(string), nil
-		}
+	if err != nil {
+		return "", err
 	}
-
-	return "", err
+	claims, parsed := token.Claims.(*userClaims)
+	if !parsed {
+		return "", errors.New("Could not parse token!")
+	}
+	if token.Valid {
+		return claims.UserEmail, nil
+	} else {
+		return "", errors.New("Token invalid!")
+	}
 }

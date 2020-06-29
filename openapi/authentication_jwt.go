@@ -15,13 +15,11 @@ func hmacSampleSecret() []byte {
 	return []byte(os.Getenv("ACCESS_SECRET"))
 }
 
-type TokenDetails struct {
-	AccessToken  string
-	RefreshToken string
-	AccessUuid   string
-	RefreshUuid  string
-	AtExpires    time.Time
-	RtExpires    time.Time
+type userClaims struct {
+	TokenUuid string `json:"token_uuid,omitempty"`
+	UserEmail string `json:"user_email,omitempty"`
+	UserName  string `json:"user_name,omitempty"`
+	jwt.StandardClaims
 }
 
 // Create a pair jwt tokens for authentication and refresh
@@ -29,13 +27,18 @@ func createToken(email string, name string) (string, string, error) {
 	const accessDuration = time.Minute * 15
 	const refreshDuration = time.Hour * 24 * 7
 
+	now := time.Now().UTC()
+
 	// access access
 	var err error
-	atClaims := jwt.MapClaims{}
-	atClaims["access_uuid"] = uuid.NewV4().String()
-	atClaims["user_email"] = email
-	atClaims["user_name"] = name
-	atClaims["exp"] = time.Now().UTC().Add(accessDuration).Unix()
+	atClaims := userClaims{
+		TokenUuid: uuid.NewV4().String(),
+		UserEmail: email,
+		UserName:  name,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: now.Add(accessDuration).Unix(),
+		},
+	}
 	at := jwt.NewWithClaims(defaultSigningMethod(), atClaims)
 	access, err := at.SignedString(hmacSampleSecret())
 	if err != nil {
@@ -43,11 +46,14 @@ func createToken(email string, name string) (string, string, error) {
 	}
 
 	// refresh access
-	rtClaims := jwt.MapClaims{}
-	rtClaims["refresh_uuid"] = uuid.NewV4().String()
-	atClaims["user_email"] = email
-	atClaims["user_name"] = name
-	rtClaims["exp"] = time.Now().UTC().Add(refreshDuration).Unix()
+	rtClaims := userClaims{
+		TokenUuid: uuid.NewV4().String(),
+		UserEmail: email,
+		UserName:  name,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: now.Add(refreshDuration).Unix(),
+		},
+	}
 	rt := jwt.NewWithClaims(defaultSigningMethod(), rtClaims)
 	refresh, err := rt.SignedString(hmacSampleSecret())
 	if err != nil {
