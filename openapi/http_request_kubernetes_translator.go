@@ -41,13 +41,13 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			}
 
-			namespace := "gamebaseuser-" + uuid
+			namespace := defaultNamespaceUser + uuid
 			if err := hr.cl.SetUserSecret(namespace, user); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			token, err := createToken(user.Email)
+			token, _, err := createToken(user.Email)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -62,7 +62,7 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 			c.JSON(http.StatusOK, User{
 				Email:    user.Email,
 				FullName: user.Name,
-				Token:    token.AccessToken,
+				Token:    token,
 			})
 			return
 		}

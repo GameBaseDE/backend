@@ -38,7 +38,7 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := createToken(request.Email)
+	token, _, err := createToken(request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,14 +53,13 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, User{
 		Email:    request.Email,
 		FullName: user.Name,
-		Token:    token.AccessToken,
+		Token:    token,
 	})
 }
 
 // Logout - Invalidate the passed JWT
 func (hr *httpRequestAuthenticator) Logout(c *gin.Context) {
-	if email := extractEmail(c); email != "" {
-		removeToken(email)
+	if email, _ := extractEmail(c); email != "" {
 		c.JSON(http.StatusOK, gin.H{"success": "success"})
 		return
 	}
@@ -172,7 +171,7 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 		return
 	}
 
-	token, err := createToken(request.Email)
+	token, _, err := createToken(request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -181,13 +180,12 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 	c.JSON(http.StatusOK, User{
 		Email:    "test@example.com",
 		FullName: "Mr. Test",
-		Token:    token.AccessToken,
+		Token:    token,
 	})
 }
 
 func (hr *httpRequestAuthenticator) AuthLogoutDelete(c *gin.Context) {
-	if email := extractEmail(c); email != "" {
-		removeToken(email)
+	if email, _ := extractEmail(c); email != "" {
 		c.JSON(http.StatusOK, gin.H{"success": "success"})
 		return
 	}
