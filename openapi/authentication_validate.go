@@ -29,7 +29,7 @@ func ParseJwt(request *gin.Context) (*jwt.Token, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	token, err := jwt.Parse(s, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(s, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -62,8 +62,8 @@ func extractJwt(request *gin.Context) string {
 func extractEmail(request *gin.Context) (string, error) {
 	token, err := ParseJwt(request)
 	if err == nil && token != nil {
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			return claims["user_email"].(string), nil
+		if claims, ok := token.Claims.(Claims); ok && token.Valid {
+			return claims.UserEmail, nil
 		}
 	}
 
