@@ -5,13 +5,14 @@ import (
 	"strings"
 )
 
-func isValidUserLogin(request UserLogin) bool {
-	dummy := UserLogin{
-		Email:    "test@example.com",
-		Password: "12345678",
+func isValidLogin(request UserLogin) (bool, error) {
+	k := NewKubernetesClient()
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		return false, err
 	}
 
-	return request.Email == dummy.Email && request.Password == dummy.Password
+	return user.Password == request.Password, nil
 }
 
 // Extract the authentication header from the request
