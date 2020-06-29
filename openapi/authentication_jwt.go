@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+func defaultSigningMethod() *jwt.SigningMethodHMAC {
+	return jwt.SigningMethodHS256
+}
+
+func hmacSampleSecret() []byte {
+	return []byte(os.Getenv("ACCESS_SECRET"))
+}
+
 type TokenDetails struct {
 	AccessToken  string
 	RefreshToken string
@@ -16,51 +24,33 @@ type TokenDetails struct {
 	RtExpires    time.Time
 }
 
-// check if the access token is expired
-func (t *TokenDetails) isExpired() bool {
-	return time.Now().UTC().After(t.AtExpires)
-}
+// Create a pair jwt tokens for authentication and refresh
+func createToken(email string) (string, string, error) {
+	const accessDuration = time.Minute * 15
+	const refreshDuration = time.Hour * 24 * 7
 
-// check if the refresh token is expired
-func (t *TokenDetails) isExpiredForever() bool {
-	return time.Now().UTC().After(t.RtExpires)
-}
-
-var loggedInUsers = make(map[string]*TokenDetails)
-
-func createToken(email string) (*TokenDetails, error) {
-	td := &TokenDetails{
-		AtExpires:   time.Now().UTC().Add(time.Minute * 15),
-		AccessUuid:  uuid.NewV4().String(),
-		RtExpires:   time.Now().UTC().Add(time.Hour * 24 * 7),
-		RefreshUuid: uuid.NewV4().String(),
-	}
-
-	// access token
+	// access access
 	var err error
 	atClaims := jwt.MapClaims{}
-	atClaims["authorized"] = true
-	atClaims["access_uuid"] = td.AccessUuid
+	atClaims["access_uuid"] = uuid.NewV4().String()
 	atClaims["user_email"] = email
-	atClaims["exp"] = td.AtExpires.Unix()
-	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	td.AccessToken, err = at.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	atClaims["exp"] = time.Now().UTC().Add(accessDuration).Unix()
+	at := jwt.NewWithClaims(defaultSigningMethod(), atClaims)
+	access, err := at.SignedString(hmacSampleSecret())
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	// refresh token
+	// refresh access
 	rtClaims := jwt.MapClaims{}
-	rtClaims["refresh_uuid"] = td.RefreshUuid
+	rtClaims["refresh_uuid"] = uuid.NewV4().String()
 	rtClaims["user_email"] = email
-	rtClaims["exp"] = td.RtExpires.Unix()
-	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
-	td.RefreshToken, err = rt.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
+	rtClaims["exp"] = time.Now().UTC().Add(refreshDuration).Unix()
+	rt := jwt.NewWithClaims(defaultSigningMethod(), rtClaims)
+	refresh, err := rt.SignedString(hmacSampleSecret())
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	loggedInUsers[email] = td
-
-	return td, nil
+	return access, refresh, nil
 }

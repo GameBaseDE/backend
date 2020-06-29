@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+const defaultNamespace = "gamebaseprefix"
+const defaultNamespaceUser = defaultNamespace + "-user-"
+
 type kubernetesClient struct {
 	Client *kubernetes.Clientset
 }
@@ -285,19 +288,19 @@ func (k kubernetesClient) NewUuid(email string) (string, error) {
 		encoded: uuid,
 	}
 
-	secret, err := k.CreateSecret("gamebaseprefix", "user-namespace", v1.SecretTypeOpaque, secretMap)
+	secret, err := k.CreateSecret(defaultNamespace, "user-namespace", v1.SecretTypeOpaque, secretMap)
 	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 		return "", err
 	}
 
-	secret, err = k.GetSecret("gamebaseprefix", "user-namespace")
+	secret, err = k.GetSecret(defaultNamespace, "user-namespace")
 	if err != nil {
 		return "", err
 	}
 
 	secret.Data[encoded] = []byte(uuid)
 
-	_, err = k.UpdateSecret("gamebaseprefix", secret)
+	_, err = k.UpdateSecret(defaultNamespace, secret)
 	return uuid, err
 }
 
@@ -316,7 +319,7 @@ func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
 		return nil, err
 	}
 
-	secret, err := k.GetSecret("gamebaseuser-"+uuid, "user")
+	secret, err := k.GetSecret(defaultNamespaceUser+uuid, "user")
 	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
 		return nil, err
 	}
