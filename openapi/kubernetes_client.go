@@ -174,6 +174,19 @@ func (k kubernetesClient) DeleteGameserver(namespace string, target *gameServer)
 	return nil
 }
 
+func (k kubernetesClient) Rescale(namespace string, target *gameServer, targetReplicas int32) error {
+	scale, err := k.Client.AppsV1().Deployments(namespace).GetScale(target.deployment.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	scale.Spec.Replicas = targetReplicas
+	_, err = k.Client.AppsV1().Deployments(namespace).UpdateScale(target.deployment.Name, scale)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
 	//base64secret = "{\"auths\": {\"url.to.server\": {\"auth\": \"base64=\"}}}"
 	secretMap := map[string]string{".dockerconfigjson": base64secret}
