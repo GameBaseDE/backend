@@ -3,6 +3,7 @@ package openapi
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type httpRequestKubernetesTranslator struct {
@@ -171,17 +172,25 @@ func (hr *httpRequestKubernetesTranslator) StopContainer(c *gin.Context) {
 
 // RestartContainer - Restart a game server/container
 func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Restart(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = AsGameServerStatus(result)
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	// Stop
+	if !hr.rescale(c, 0) {
+		return
 	}
-
-	panic("id is unset")
+	// Wait until stopped
+	_, existingGameServer := hr.parseIdRequest(c)
+	maxruntime := *existingGameServer.GetTerminationTimeout()
+	for i := int64(0); i <= maxruntime; i++ {
+		if existingGameServer.GetStatus() == STOPPED {
+			break
+		}
+		time.Sleep(1 * time.Second)
+		_, existingGameServer = hr.parseIdRequest(c)
+	}
+	// Start
+	if !hr.rescale(c, 1) {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 // DeleteContainer - Delete deployment of game server
