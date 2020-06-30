@@ -1,46 +1,51 @@
 package openapi
 
 import (
+	"errors"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
 
-func isValidUserLogin(request UserLogin) bool {
-	dummy := UserLogin{
-		Email:    "test@example.com",
-		Password: "12345678",
+func isValidLogin(request UserLogin, k kubernetesClient) (bool, error) {
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		return false, err
 	}
 
-	return request.Email == dummy.Email && request.Password == dummy.Password
+	return user.Password == request.Password, nil
 }
 
 // Extract the authentication header from the request
 // and check the authentication token against the valid authentication tokens
 func isAuthorized(request *gin.Context) bool {
-	authHeader := request.GetHeader("Authorization")
-	if authHeader == "" {
-		return false
-	}
-
-	fields := strings.Fields(authHeader)
-	if len(fields) == 2 && fields[0] == "Bearer" {
-		removeExpiredTokens()
-		for email, tokenDetails := range loggedInUsers {
-			if tokenDetails.AccessToken == fields[1] {
-				return !tokenDetails.isExpired()
-			}
-
-			if tokenDetails.isExpired() && tokenDetails.isExpiredForever() {
-				delete(loggedInUsers, email)
-			}
-		}
-	}
-
-	return false
+	token, err := ParseJwt(request)
+	return err == nil && token.Valid
 }
 
-// Lookup the email address from the authentication token
-func extractEmail(request *gin.Context) string {
+func ParseJwt(request *gin.Context) (*jwt.Token, error) {
+	s := extractJwt(request)
+	if s == "" {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	token, err := jwt.ParseWithClaims(s, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return hmacSampleSecret(), nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return token, nil
+}
+
+func extractJwt(request *gin.Context) string {
 	authHeader := request.GetHeader("Authorization")
 	if authHeader == "" {
 		return ""
@@ -48,25 +53,25 @@ func extractEmail(request *gin.Context) string {
 
 	fields := strings.Fields(authHeader)
 	if len(fields) == 2 && fields[0] == "Bearer" {
-		removeExpiredTokens()
-		for email, tokenDetails := range loggedInUsers {
-			if tokenDetails.AccessToken == fields[1] {
-				return email
-			}
-		}
+		return fields[1]
 	}
 
 	return ""
 }
 
-func removeExpiredTokens() {
-	for email, tokenDetails := range loggedInUsers {
-		if tokenDetails.isExpired() && tokenDetails.isExpiredForever() {
-			delete(loggedInUsers, email)
-		}
+// Lookup the email address from the authentication token
+func extractEmail(request *gin.Context) (string, error) {
+	token, err := ParseJwt(request)
+	if err != nil {
+		return "", err
 	}
-}
-
-func removeToken(email string) {
-	delete(loggedInUsers, email)
+	claims, parsed := token.Claims.(*userClaims)
+	if !parsed {
+		return "", errors.New("Could not parse token!")
+	}
+	if token.Valid {
+		return claims.UserEmail, nil
+	} else {
+		return "", errors.New("Token invalid!")
+	}
 }

@@ -13,46 +13,63 @@ func newHttpRequestAuthenticator() *httpRequestAuthenticator {
 	return &httpRequestAuthenticator{nextHandler: newHttpRequestParser()}
 }
 
+func (hr *httpRequestAuthenticator) kubernetesClient() kubernetesClient {
+	return hr.nextHandler.kubernetesClient()
+}
+
 // Login - Login a user and return a JWT with the user object
 func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
+	k := hr.kubernetesClient()
+
 	var request UserLogin
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if !isValidUserLogin(request) {
+	validLogin, err := isValidLogin(request, k)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !validLogin {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}
 
-	token, err := createToken(request.Email)
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, _, err := createToken(user.Email, user.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, User{
-		Email:    "test@example.com",
-		FullName: "Mr. Test",
-		Token:    token.AccessToken,
+		Email:    user.Email,
+		FullName: user.Name,
+		Token:    token,
 	})
 }
 
 // Logout - Invalidate the passed JWT
 func (hr *httpRequestAuthenticator) Logout(c *gin.Context) {
-	if email := extractEmail(c); email != "" {
-		removeToken(email)
+	if email, _ := extractEmail(c); email != "" {
 		c.JSON(http.StatusOK, gin.H{"success": "success"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 }
 
 // Register - Register a user and return a JWT with the user object
 func (hr *httpRequestAuthenticator) Register(c *gin.Context) {
-	// TODO: authenticator.AuthRegisterPost(c)
+	hr.nextHandler.Register(c)
 }
 
 // ListTemplates - Get a list of all available game server images
@@ -61,7 +78,10 @@ func (hr *httpRequestAuthenticator) ListTemplates(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.ListTemplates(c)
 }
 
@@ -71,7 +91,10 @@ func (hr *httpRequestAuthenticator) GetStatus(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.GetStatus(c)
 }
 
@@ -81,7 +104,10 @@ func (hr *httpRequestAuthenticator) ConfigureContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.ConfigureContainer(c)
 }
 
@@ -91,7 +117,10 @@ func (hr *httpRequestAuthenticator) DeployContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.DeployContainer(c)
 }
 
@@ -101,7 +130,10 @@ func (hr *httpRequestAuthenticator) StartContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.StartContainer(c)
 }
 
@@ -111,7 +143,10 @@ func (hr *httpRequestAuthenticator) StopContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.StopContainer(c)
 }
 
@@ -121,7 +156,10 @@ func (hr *httpRequestAuthenticator) RestartContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.RestartContainer(c)
 }
 
@@ -131,12 +169,72 @@ func (hr *httpRequestAuthenticator) DeleteContainer(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
 		return
 	}
-	extractNamespace(c)
+	if err := extractNamespace(c, hr.kubernetesClient()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	hr.nextHandler.DeleteContainer(c)
 }
 
+func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
+	k := hr.nextHandler.kubernetesClient()
+
+	var request UserLogin
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	valid, err := isValidLogin(request, k)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
+		return
+	}
+
+	user, err := k.GetUserSecret(request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, _, err := createToken(user.Email, user.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, User{
+		Email:    user.Email,
+		FullName: user.Name,
+		Token:    token,
+	})
+}
+
+func (hr *httpRequestAuthenticator) AuthLogoutDelete(c *gin.Context) {
+	if email, _ := extractEmail(c); email != "" {
+		c.JSON(http.StatusOK, gin.H{"success": "success"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
+}
+
 // Sets the target namespace based on the Request JWT
-func extractNamespace(c *gin.Context) {
-	//FIXME could be combined with isAuthorized()
-	c.Set("namespace", "gambaseprefix-testuser")
+func extractNamespace(c *gin.Context, k kubernetesClient) error {
+	email, err := extractEmail(c)
+	if err != nil {
+		return err
+	}
+
+	uuid, _, err := k.GetUuid(email)
+	if err != nil {
+		return err
+	}
+
+	c.Set("namespace", defaultNamespaceUser+uuid)
+	return nil
 }

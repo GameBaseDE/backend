@@ -16,6 +16,10 @@ func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
 	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
 }
 
+func (hr *httpRequestKubernetesTranslator) kubernetesClient() kubernetesClient {
+	return hr.cl
+}
+
 // Login - Login a user and return a JWT with the user object
 func (hr *httpRequestKubernetesTranslator) Login(c *gin.Context) {
 	return
@@ -26,8 +30,39 @@ func (hr *httpRequestKubernetesTranslator) Logout(c *gin.Context) {
 	return
 }
 
-// Logout - Invalidate the passed JWT
+// Register - Register a user and return a JWT with the user object
 func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
+	request, exists := c.Get("request")
+	if !exists {
+		panic("request is unset")
+	}
+	user, validUser := request.(GamebaseUser)
+	if !validUser {
+		panic("request is of invalid type")
+	}
+
+	uuid, _, err := hr.cl.GetUuid(user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	namespace := defaultNamespaceUser + uuid
+	if err := hr.cl.SetUserSecret(namespace, user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, _, err := createToken(user.Email, user.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, User{
+		Email:    user.Email,
+		FullName: user.Name,
+		Token:    token,
+	})
 	return
 }
 
