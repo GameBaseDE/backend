@@ -5,6 +5,7 @@ import (
 )
 
 type httpRequestHandler interface {
+	kubernetesClient() kubernetesClient
 	Login(c *gin.Context)
 	Logout(c *gin.Context)
 	Register(c *gin.Context)
