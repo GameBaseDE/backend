@@ -17,8 +17,6 @@ func AsGameServerStatus(deployment *appsv1.Deployment) *GameContainerStatus {
 				status = ERROR
 			case appsv1.DeploymentAvailable:
 				status = RUNNING
-			case appsv1.DeploymentProgressing:
-				status = RESTARTING
 			}
 		case v1.ConditionFalse:
 			status = ERROR
