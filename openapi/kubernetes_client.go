@@ -11,8 +11,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"math/rand"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const defaultNamespace = "gamebaseprefix"
@@ -279,8 +281,15 @@ func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
 		return err
 	}
 
+	// new users might not have uuid so we need to generate one
+	random := make([]byte, 4)
+	rand.Read(random)
+	id := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user", email, time.Now().UTC(), random)
+	uuid := uuidGen.Formatter(id, uuidGen.FormatHex)
 	if secret.Data == nil {
-		secret.Data = map[string][]byte{}
+		secret.Data = map[string][]byte{
+			"uuid": []byte(uuid),
+		}
 	}
 
 	for key, value := range user.ToSecretData() {
@@ -293,57 +302,19 @@ func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
 	return err
 }
 
-// Get uuid of the user or generate a new one if the user doesn't exist and return it.
-// The returned bool is true if the uuid had to be generated
-func (k kubernetesClient) GetUuid(email string) (string, bool, error) {
+// Lookup the uuid of the user
+func (k kubernetesClient) GetUuid(email string) (string, error) {
 	encoded := encodeEmail(email)
 	secret, err := k.GetSecret(defaultNamespace, encoded)
-	if err == nil {
-		if uuid, exists := secret.Data["uuid"]; exists {
-			return string(uuid), false, nil
-		}
-	}
-
-	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
-		return "", false, err
-	}
-
-	uuid, err := k.NewUuid(email)
-
-	return uuid, true, err
-}
-
-// Generate a new uuid for the user with the given email
-// Returns the uuid
-// Warning: Do not call this function for purposes other
-//          than generating a new user account because the
-//          existing namespace of that user will become
-//         	inaccessible (requiring manual deletion via kubectl)!
-func (k kubernetesClient) NewUuid(email string) (string, error) {
-	encoded := encodeEmail(email)
-
-	uuid := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user", encoded)
-	uuidString := uuidGen.Formatter(uuid, uuidGen.FormatHex)
-	secretMap := map[string]string{
-		"uuid": uuidString,
-	}
-
-	secret, err := k.CreateSecret(defaultNamespace, encoded, v1.SecretTypeOpaque, secretMap)
-	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
-		return "", err
-	}
-
-	secret, err = k.GetSecret(defaultNamespace, encoded)
 	if err != nil {
 		return "", err
 	}
 
-	secret.Data = map[string][]byte{
-		"uuid": []byte(uuidString),
+	if uuid, exists := secret.Data["uuid"]; exists {
+		return string(uuid), nil
 	}
 
-	_, err = k.UpdateSecret(defaultNamespace, secret)
-	return uuidString, err
+	return "", errors.New("secret does not contain uuid")
 }
 
 func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
