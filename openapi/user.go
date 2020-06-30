@@ -8,36 +8,37 @@ type GamebaseUser struct {
 	Name     string
 	Email    string
 	Password string
+	Gravatar string
 }
 
 // construct a GamebaseUser from the data field of a v1 secret
-func NewGamebaseUserFromSecretData(data map[string][]byte) GamebaseUser {
+func NewGamebaseUserFromSecretData(email string, data map[string][]byte) GamebaseUser {
 	name := string(data["name"])
 	password := string(data["password"])
+	gravatar := string(data["gravatar"])
 
-	email := string(data["email"])
-	email = decodeEmail(email)
 	return GamebaseUser{
 		Name:     name,
-		Email:    string(email),
+		Email:    email,
 		Password: password,
+		Gravatar: gravatar,
 	}
 }
 
 func (user GamebaseUser) ToSecretData() map[string]string {
 	return map[string]string{
 		"name":     user.Name,
-		"email":    encodeEmail(user.Email),
 		"password": user.Password,
+		"gravatar": user.Gravatar,
 	}
 }
 
 func kubernetesFriendlyEncoding() *base32.Encoding {
-	encoding := base32.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
-	return encoding.WithPadding('_')
+	encoding := base32.NewEncoding("abcdefghijklmnopqrstuvwxyz123456")
+	return encoding.WithPadding('0')
 }
 
-// encode the email as base32 with kubernetes friendly padding ('_' instead of '=').
+// encode the email as base32 with kubernetes friendly padding ('0' instead of '=').
 func encodeEmail(email string) string {
 	src := []byte(email)
 
@@ -48,7 +49,7 @@ func encodeEmail(email string) string {
 	return string(buf)
 }
 
-// decodeEmail the email as base32 with kubernetes friendly padding ('_' instead of '=').
+// decodeEmail the email as base32 with kubernetes friendly padding ('0' instead of '=').
 func decodeEmail(email string) string {
 	src := []byte(email)
 

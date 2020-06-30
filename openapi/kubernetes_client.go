@@ -193,11 +193,6 @@ func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string
 	return k.CreateSecret(namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
 }
 
-// Create a kubernetes secret which stores the user information
-func (k kubernetesClient) CreateUserSecret(namespace string, name string, user GamebaseUser) (*v1.Secret, error) {
-	return k.CreateSecret(namespace, name, v1.SecretTypeOpaque, user.ToSecretData())
-}
-
 func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
 	_, _ = k.CreateNamespace(namespace)
 	secret := v1.Secret{
@@ -271,25 +266,30 @@ func (k kubernetesClient) UpdateSecret(namespace string, secret *v1.Secret) (*v1
 
 // Set the user information either by creating the kubernetes secret
 // or if it already exists, updating it
-func (k kubernetesClient) SetUserSecret(namespace string, user GamebaseUser) error {
-	_, err := k.CreateUserSecret(namespace, "user", user)
+func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
+	encoded := encodeEmail(email)
+
+	secret, err := k.CreateSecret(defaultNamespace, encoded, v1.SecretTypeOpaque, map[string]string{})
 	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 		return err
 	}
 
-	secret, err := k.GetSecret(namespace, "user")
+	secret, err = k.GetSecret(defaultNamespace, encoded)
 	if err != nil {
 		return err
 	}
 
+	if secret.Data == nil {
+		secret.Data = map[string][]byte{}
+	}
+
 	for key, value := range user.ToSecretData() {
-		if value == "" {
+		if value != "" {
 			secret.Data[key] = []byte(value)
 		}
 	}
 
-	_, err = k.UpdateSecret(namespace, secret)
-
+	_, err = k.UpdateSecret(defaultNamespace, secret)
 	return err
 }
 
@@ -297,10 +297,15 @@ func (k kubernetesClient) SetUserSecret(namespace string, user GamebaseUser) err
 // The returned bool is true if the uuid had to be generated
 func (k kubernetesClient) GetUuid(email string) (string, bool, error) {
 	encoded := encodeEmail(email)
-	secret, err := k.GetSecret("gamebaseprefix", "user-namespace")
+	secret, err := k.GetSecret(defaultNamespace, encoded)
+	if err == nil {
+		if uuid, exists := secret.Data["uuid"]; exists {
+			return string(uuid), false, nil
+		}
+	}
 
-	if uuid, exists := secret.Data[encoded]; exists {
-		return string(uuid), false, nil
+	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
+		return "", false, err
 	}
 
 	uuid, err := k.NewUuid(email)
@@ -320,20 +325,22 @@ func (k kubernetesClient) NewUuid(email string) (string, error) {
 	uuid := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user", encoded)
 	uuidString := uuidGen.Formatter(uuid, uuidGen.FormatHex)
 	secretMap := map[string]string{
-		encoded: uuidString,
+		"uuid": uuidString,
 	}
 
-	secret, err := k.CreateSecret(defaultNamespace, "user-namespace", v1.SecretTypeOpaque, secretMap)
+	secret, err := k.CreateSecret(defaultNamespace, encoded, v1.SecretTypeOpaque, secretMap)
 	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 		return "", err
 	}
 
-	secret, err = k.GetSecret(defaultNamespace, "user-namespace")
+	secret, err = k.GetSecret(defaultNamespace, encoded)
 	if err != nil {
 		return "", err
 	}
 
-	secret.Data[encoded] = []byte(uuidString)
+	secret.Data = map[string][]byte{
+		"uuid": []byte(uuidString),
+	}
 
 	_, err = k.UpdateSecret(defaultNamespace, secret)
 	return uuidString, err
@@ -349,16 +356,16 @@ func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
 }
 
 func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
-	uuid, _, err := k.GetUuid(email)
-	if err != nil {
-		return nil, err
-	}
-
-	secret, err := k.GetSecret(defaultNamespaceUser+uuid, "user")
+	secret, err := k.GetSecret(defaultNamespace, encodeEmail(email))
 	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
 		return nil, err
 	}
 
-	user := NewGamebaseUserFromSecretData(secret.Data)
+	user := NewGamebaseUserFromSecretData(email, secret.Data)
 	return &user, nil
+}
+
+func (k kubernetesClient) DeleteUserSecret(email string) error {
+	deleteOptions := metav1.DeleteOptions{}
+	return k.Client.CoreV1().Secrets(defaultNamespace).Delete(encodeEmail(email), &deleteOptions)
 }

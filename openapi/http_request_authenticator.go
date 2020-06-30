@@ -223,6 +223,15 @@ func (hr *httpRequestAuthenticator) AuthLogoutDelete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"error": "invalid authentication token"})
 }
 
+func (hr *httpRequestAuthenticator) UpdateUserProfile(c *gin.Context) {
+	if !isAuthorized(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authentication token"})
+		return
+	}
+
+	hr.nextHandler.UpdateUserProfile(c)
+}
+
 // Sets the target namespace based on the Request JWT
 func extractNamespace(c *gin.Context, k kubernetesClient) error {
 	email, err := extractEmail(c)

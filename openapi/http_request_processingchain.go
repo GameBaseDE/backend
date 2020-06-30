@@ -77,3 +77,7 @@ func (hr *HttpRequestProcessingChain) RestartContainer(c *gin.Context) {
 func (hr *HttpRequestProcessingChain) DeleteContainer(c *gin.Context) {
 	hr.nextHandler.DeleteContainer(c)
 }
+
+func (hr *HttpRequestProcessingChain) UpdateUserProfile(c *gin.Context) {
+	hr.nextHandler.UpdateUserProfile(c)
+}
