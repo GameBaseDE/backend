@@ -68,7 +68,15 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 
 // ListTemplates - Get a list of all available game server images
 func (hr *httpRequestKubernetesTranslator) ListTemplates(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{})
+	if hr.templates == nil {
+		c.JSON(http.StatusInternalServerError, Exception{Details: "templates not parsed!"})
+		return
+	}
+	templatesList := []string{}
+	for _, template := range hr.templates {
+		templatesList = append(templatesList, template.GetName())
+	}
+	c.JSON(http.StatusOK, templatesList)
 }
 
 // GetStatus - Query status of all deployments
