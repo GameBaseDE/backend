@@ -1,66 +1,82 @@
 package openapi
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/twinj/uuid"
+	"log"
 	"os"
 	"time"
 )
 
-type TokenDetails struct {
-	AccessToken  string
-	RefreshToken string
-	AccessUuid   string
-	RefreshUuid  string
-	AtExpires    time.Time
-	RtExpires    time.Time
+func defaultSigningMethod() *jwt.SigningMethodHMAC {
+	return jwt.SigningMethodHS256
 }
 
-// check if the access token is expired
-func (t *TokenDetails) isExpired() bool {
-	return time.Now().UTC().After(t.AtExpires)
-}
-
-// check if the refresh token is expired
-func (t *TokenDetails) isExpiredForever() bool {
-	return time.Now().UTC().After(t.RtExpires)
-}
-
-var loggedInUsers = make(map[string]*TokenDetails)
-
-func createToken(email string) (*TokenDetails, error) {
-	td := &TokenDetails{
-		AtExpires:   time.Now().UTC().Add(time.Minute * 15),
-		AccessUuid:  uuid.NewV4().String(),
-		RtExpires:   time.Now().UTC().Add(time.Hour * 24 * 7),
-		RefreshUuid: uuid.NewV4().String(),
+func hmacSampleSecret() []byte {
+	key := make([]byte, 32)
+	secret := os.Getenv("ACCESS_SECRET")
+	if secret == "" {
+		_, err := rand.Read(key)
+		if err != nil {
+			log.Fatal("Could not create random hmacSampleSecret")
+		}
+		os.Setenv("ACCESS_SECRET", base64.StdEncoding.EncodeToString(key))
+		return key
+	} else {
+		readKey, err := base64.StdEncoding.DecodeString(secret)
+		if err != nil {
+			return []byte(secret)
+		}
+		return readKey
 	}
+}
 
-	// access token
+type Claims struct {
+	TokenUuid string `json:"token_uuid,omitempty"`
+	UserEmail string `json:"user_email,omitempty"`
+	UserName  string `json:"user_name,omitempty"`
+	jwt.StandardClaims
+}
+
+// Create a pair jwt tokens for authentication and refresh
+func createToken(email string, name string) (string, string, error) {
+	const accessDuration = time.Minute * 15
+	const refreshDuration = time.Hour * 24 * 7
+
+	now := time.Now().UTC()
+
+	// access access
 	var err error
-	atClaims := jwt.MapClaims{}
-	atClaims["authorized"] = true
-	atClaims["access_uuid"] = td.AccessUuid
-	atClaims["user_email"] = email
-	atClaims["exp"] = td.AtExpires.Unix()
-	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	td.AccessToken, err = at.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	atClaims := Claims{
+		TokenUuid: uuid.NewV4().String(),
+		UserEmail: email,
+		UserName:  name,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: now.Add(accessDuration).Unix(),
+		},
+	}
+	at := jwt.NewWithClaims(defaultSigningMethod(), atClaims)
+	access, err := at.SignedString(hmacSampleSecret())
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	// refresh token
-	rtClaims := jwt.MapClaims{}
-	rtClaims["refresh_uuid"] = td.RefreshUuid
-	rtClaims["user_email"] = email
-	rtClaims["exp"] = td.RtExpires.Unix()
-	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
-	td.RefreshToken, err = rt.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
+	// refresh access
+	rtClaims := Claims{
+		TokenUuid: uuid.NewV4().String(),
+		UserEmail: email,
+		UserName:  name,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: now.Add(refreshDuration).Unix(),
+		},
+	}
+	rt := jwt.NewWithClaims(defaultSigningMethod(), rtClaims)
+	refresh, err := rt.SignedString(hmacSampleSecret())
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	loggedInUsers[email] = td
-
-	return td, nil
+	return access, refresh, nil
 }

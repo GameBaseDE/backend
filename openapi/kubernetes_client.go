@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	uuidGen "github.com/twinj/uuid"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +12,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
+	"strings"
 )
+
+const defaultNamespace = "gamebaseprefix"
+const defaultNamespaceUser = defaultNamespace + "-user-"
 
 type kubernetesClient struct {
 	Client *kubernetes.Clientset
@@ -151,12 +156,18 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
 	//base64secret = "{\"auths\": {\"url.to.server\": {\"auth\": \"base64=\"}}}"
 	secretMap := map[string]string{".dockerconfigjson": base64secret}
-	return k.CreateSecret(namespace, name, secretMap)
+	return k.CreateSecret(namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
 }
 
-func (k kubernetesClient) CreateSecret(namespace string, name string, stringData map[string]string) (*v1.Secret, error) {
+// Create a kubernetes secret which stores the user information
+func (k kubernetesClient) CreateUserSecret(namespace string, name string, user GamebaseUser) (*v1.Secret, error) {
+	return k.CreateSecret(namespace, name, v1.SecretTypeOpaque, user.ToSecretData())
+}
+
+func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
+	_, _ = k.CreateNamespace(namespace)
 	secret := v1.Secret{
-		Type: v1.SecretTypeDockerConfigJson,
+		Type: secretType,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -212,6 +223,121 @@ func (k kubernetesClient) UpdatePVC(namespace string, name string) (*v1.Persiste
 	return k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(pvc)
 }
 
-func (k kubernetesClient) GetSecret(namespace string, selector string) (*v1.SecretList, error) {
+func (k kubernetesClient) GetSecrets(namespace string, selector string) (*v1.SecretList, error) {
 	return k.Client.CoreV1().Secrets(namespace).List(metav1.ListOptions{LabelSelector: selector})
 }
+
+func (k kubernetesClient) GetSecret(namespace string, name string) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+}
+
+func (k kubernetesClient) UpdateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Update(secret)
+}
+
+// Set the user information either by creating the kubernetes secret
+// or if it already exists, updating it
+func (k kubernetesClient) SetUserSecret(namespace string, user GamebaseUser) error {
+	_, err := k.CreateUserSecret(namespace, "user", user)
+	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
+		return err
+	}
+
+	secret, err := k.GetSecret(namespace, "user")
+	if err != nil {
+		return err
+	}
+
+	for key, value := range user.ToSecretData() {
+		if value == "" {
+			secret.Data[key] = []byte(value)
+		}
+	}
+
+	_, err = k.UpdateSecret(namespace, secret)
+
+	return err
+}
+
+// Get uuid of the user or generate a new one if the user doesn't exist and return it.
+// The returned bool is true if the uuid had to be generated
+func (k kubernetesClient) GetUuid(email string) (string, bool, error) {
+	encoded := encodeEmail(email)
+	secret, err := k.GetSecret("gamebaseprefix", "user-namespace")
+
+	if uuid, exists := secret.Data[encoded]; exists {
+		return string(uuid), false, nil
+	}
+
+	uuid, err := k.NewUuid(email)
+
+	return uuid, true, err
+}
+
+// Generate a new uuid for the user with the given email
+// Returns the uuid
+// Warning: Do not call this function for purposes other
+//          than generating a new user account because the
+//          existing namespace of that user will become
+//         	inaccessible (requiring manual deletion via kubectl)!
+func (k kubernetesClient) NewUuid(email string) (string, error) {
+	encoded := encodeEmail(email)
+
+	uuid := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user")
+	uuidString := uuidGen.Formatter(uuid, uuidGen.FormatHex)
+	secretMap := map[string]string{
+		encoded: uuidString,
+	}
+
+	secret, err := k.CreateSecret(defaultNamespace, "user-namespace", v1.SecretTypeOpaque, secretMap)
+	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
+		return "", err
+	}
+
+	secret, err = k.GetSecret(defaultNamespace, "user-namespace")
+	if err != nil {
+		return "", err
+	}
+
+	secret.Data[encoded] = []byte(uuidString)
+
+	_, err = k.UpdateSecret(defaultNamespace, secret)
+	return uuidString, err
+}
+
+func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
+	namespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	return k.Client.CoreV1().Namespaces().Create(&namespace)
+}
+
+func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
+	uuid, _, err := k.GetUuid(email)
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := k.GetSecret(defaultNamespaceUser+uuid, "user")
+	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
+		return nil, err
+	}
+
+	user := NewGamebaseUserFromSecretData(secret.Data)
+	return &user, nil
+}
+
+/*return k.Client.CoreV1().Namespaces().List(metav1.ListOptions{
+TypeMeta:            metav1.TypeMeta{},
+LabelSelector:       "",
+FieldSelector:       "",
+Watch:               false,
+AllowWatchBookmarks: false,
+ResourceVersion:     "",
+TimeoutSeconds:      nil,
+Limit:               0,
+Continue:            "",
+})
+}*/

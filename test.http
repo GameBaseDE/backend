@@ -33,3 +33,27 @@ DELETE http://localhost:80/gs/destroy/42
 Accept: application/json
 
 ###
+POST http://localhost:80/auth/login
+Accept: application/json
+
+{
+  "email": "etaloof@gmail.com",
+  "password": "string"
+}
+
+###
+POST http://localhost:80/auth/register
+Accept: application/json
+
+{
+  "fullName": "Stefan Lukas",
+  "email": "etaloof@gmail.com",
+  "password": "string",
+  "confirmPassword": "string"
+}
+
+###
+
+DELETE http://localhost:80/auth/logout
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImQ2ZWU0YWIwLTY5ZmYtNGU2ZC05YzEzLWU4NzVhYjdhZTVjNCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MTU5MzM5NDA4NSwidXNlcl9lbWFpbCI6ImV0YWxvb2ZAZ21haWwuY29tIn0.g6VXo3x9ypNy_DP0QfexUT-8EJhH6NN2owPq322ePPw
