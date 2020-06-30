@@ -3,6 +3,7 @@ package openapi
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type httpRequestKubernetesTranslator struct {
@@ -91,9 +92,8 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 			return
 		}
 	} else {
-		existingGameServer, err := hr.cl.GetGameServer(getNamespace(c), id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		_, existingGameServer := hr.parseIdRequest(c)
+		if existingGameServer == nil {
 			return
 		}
 		existingGameServers = append(existingGameServers, existingGameServer)
@@ -158,72 +158,48 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 
 // StartContainer - Start a game server/container
 func (hr *httpRequestKubernetesTranslator) StartContainer(c *gin.Context) {
-	hr.cl.GetNamespaceList()
-	hr.cl.GetConfigMaps(c.GetString("namespace"))
-	hr.cl.GetPVCs(c.GetString("namespace"))
-	hr.cl.GetDeploymentList(c.GetString("namespace"))
-	hr.cl.GetServices(c.GetString("namespace"))
-	hr.cl.GetPVCs2(c.GetString("namespace"), "gameserver=cuberite,deployment=gameserver")
-	//hr.cl.UpdatePVC("gambaseprefix-testuser","cuberite")
-	hr.cl.CreateDockerConfigSecret(c.GetString("namespace"), "regcred", "aaabbbcccddd")
-	hr.cl.SetDefaultServiceAccountImagePullSecret(c.GetString("namespace"), "regcred")
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Start(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = result
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	if hr.rescale(c, 1) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	}
-
-	panic("id is unset")
 }
 
 // StopContainer - Stop a game server/container
 func (hr *httpRequestKubernetesTranslator) StopContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Stop(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = result
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	if hr.rescale(c, 0) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	}
-
-	panic("id is unset")
 }
 
 // RestartContainer - Restart a game server/container
 func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Restart(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = AsGameServerStatus(result)
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	// Stop
+	if !hr.rescale(c, 0) {
+		return
 	}
-
-	panic("id is unset")
+	// Wait until stopped
+	_, existingGameServer := hr.parseIdRequest(c)
+	maxruntime := *existingGameServer.GetTerminationTimeout()
+	for i := int64(0); i <= maxruntime; i++ {
+		if existingGameServer.GetStatus() == STOPPED {
+			break
+		}
+		time.Sleep(1 * time.Second)
+		_, existingGameServer = hr.parseIdRequest(c)
+	}
+	// Start
+	if !hr.rescale(c, 1) {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
-	id := c.GetString("id")
-	if id == "" {
-		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: "No ID specified"})
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
 		return
 	}
-	namespace := getNamespace(c)
-	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
-		return
-	}
-	err = hr.cl.DeleteGameserver(namespace, existingGameServer)
+	err := hr.cl.DeleteGameserver(namespace, existingGameServer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
@@ -241,4 +217,34 @@ func getNamespace(c *gin.Context) string {
 	} else {
 		panic("No Namespace in gin Context")
 	}
+}
+
+// This method is used to parse all requests that specify the target Gameserver in the URL
+func (hr *httpRequestKubernetesTranslator) parseIdRequest(c *gin.Context) (string, *gameServer) {
+	id := c.GetString("id")
+	if id == "" {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: "No ID specified"})
+		return "", nil
+	}
+	namespace := getNamespace(c)
+	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return "", nil
+	}
+	return namespace, existingGameServer
+}
+
+// rescale is used for Start,Stop and Restart
+func (hr *httpRequestKubernetesTranslator) rescale(c *gin.Context, replicas int32) bool {
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
+		return false
+	}
+	err := hr.cl.Rescale(namespace, existingGameServer, replicas)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return false
+	}
+	return true
 }

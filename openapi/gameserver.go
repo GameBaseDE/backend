@@ -116,3 +116,7 @@ func (gs *gameServer) readGameContainerStatus() GameContainerStatus {
 	}
 	return gsst
 }
+
+func (gs *gameServer) GetTerminationTimeout() *int64 {
+	return gs.deployment.Spec.Template.Spec.TerminationGracePeriodSeconds
+}
