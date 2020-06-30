@@ -328,16 +328,3 @@ func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
 	user := NewGamebaseUserFromSecretData(secret.Data)
 	return &user, nil
 }
-
-/*return k.Client.CoreV1().Namespaces().List(metav1.ListOptions{
-TypeMeta:            metav1.TypeMeta{},
-LabelSelector:       "",
-FieldSelector:       "",
-Watch:               false,
-AllowWatchBookmarks: false,
-ResourceVersion:     "",
-TimeoutSeconds:      nil,
-Limit:               0,
-Continue:            "",
-})
-}*/
