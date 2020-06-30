@@ -204,16 +204,23 @@ func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
 
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if err := hr.api.Destroy(id); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+	id := c.GetString("id")
+	if id == "" {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: "No ID specified"})
+		return
 	}
-
-	panic("id is unset")
+	namespace := getNamespace(c)
+	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return
+	}
+	err = hr.cl.DeleteGameserver(namespace, existingGameServer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 // Tests if a GameServer Id exists
