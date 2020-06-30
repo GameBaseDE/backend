@@ -69,29 +69,29 @@ func (k kubernetesClient) GetGameServer(namespace string, uuid string) (*gameSer
 	if err != nil {
 		return nil, err
 	}
-	if len(existingConfigMap.Items) > 1 {
-		return nil, errors.New("Multiple ConfigMaps with matching UUID")
+	if num := len(existingConfigMap.Items); num != 1 {
+		return nil, errors.New("Number of selected ConfigMaps for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
 	existingPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
-	if len(existingPVC.Items) > 1 {
-		return nil, errors.New("Multiple PVCs with matching UUID")
+	if num := len(existingPVC.Items); num != 1 {
+		return nil, errors.New("Number of selected PVCs for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
 	existingDeployment, err := k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
-	if len(existingDeployment.Items) > 1 {
-		return nil, errors.New("Multiple Deployments with matching UUID")
+	if num := len(existingDeployment.Items); num != 1 {
+		return nil, errors.New("Number of selected Deployments for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
 	existingService, err := k.Client.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
-	if len(existingService.Items) > 1 {
-		return nil, errors.New("Multiple Services with matching UUID")
+	if num := len(existingService.Items); num != 1 {
+		return nil, errors.New("Number of selected Services for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
 	return &gameServer{
 		configmap:  kubernetesComponentConfigMap{existingConfigMap.Items[0]},
