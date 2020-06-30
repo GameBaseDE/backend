@@ -33,21 +33,22 @@ func (gs *gameServer) GetTemplate() string {
 	return gs.deployment.Labels["gameserver"]
 }
 
-func (gs *gameServer) GetContainerPorts() GameContainerConfigurationResourcesPorts {
-	tcp := []int32{}
-	udp := []int32{}
+func (gs *gameServer) GetPortMapping() []PortMapping {
+	portMappings := []PortMapping{}
 	for _, servicePort := range gs.service.Spec.Ports {
 		if servicePort.Protocol == v1.ProtocolTCP {
-			tcp = append(tcp, servicePort.Port)
+			portMappings = append(portMappings, PortMapping{
+				Protocol:      TCP,
+				NodePort:      servicePort.NodePort,
+				ContainerPort: servicePort.Port})
 		} else if servicePort.Protocol == v1.ProtocolUDP {
-			udp = append(udp, servicePort.Port)
+			portMappings = append(portMappings, PortMapping{
+				Protocol:      UDP,
+				NodePort:      servicePort.NodePort,
+				ContainerPort: servicePort.Port})
 		}
-
 	}
-	return GameContainerConfigurationResourcesPorts{
-		Tcp: tcp,
-		Udp: udp,
-	}
+	return portMappings
 }
 
 func (gs *gameServer) GetContainerMemoryLimit() int32 {
@@ -92,12 +93,11 @@ func (gs *gameServer) readGameContainerStatus() GameContainerStatus {
 		Configuration: GameContainerConfiguration{
 			Details: GameContainerConfigurationDetails{
 				ServerName:  gs.GetName(),
-				OwnerId:     "", //FIXME remove
 				Description: gs.GetDescription(),
 			},
 			Resources: GameContainerConfigurationResources{
 				TemplatePath:    gs.GetTemplate(),
-				Ports:           gs.GetContainerPorts(),
+				Ports:           gs.GetPortMapping(),
 				Memory:          gs.GetContainerMemoryLimit(),
 				StartupArgs:     gs.GetStartupArgs(),
 				RestartBehavior: gs.GetRestartBehavior(),
