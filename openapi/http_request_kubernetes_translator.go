@@ -157,41 +157,16 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 
 // StartContainer - Start a game server/container
 func (hr *httpRequestKubernetesTranslator) StartContainer(c *gin.Context) {
-	hr.cl.GetNamespaceList()
-	hr.cl.GetConfigMaps(c.GetString("namespace"))
-	hr.cl.GetPVCs(c.GetString("namespace"))
-	hr.cl.GetDeploymentList(c.GetString("namespace"))
-	hr.cl.GetServices(c.GetString("namespace"))
-	hr.cl.GetPVCs2(c.GetString("namespace"), "gameserver=cuberite,deployment=gameserver")
-	//hr.cl.UpdatePVC("gambaseprefix-testuser","cuberite")
-	hr.cl.CreateDockerConfigSecret(c.GetString("namespace"), "regcred", "aaabbbcccddd")
-	hr.cl.SetDefaultServiceAccountImagePullSecret(c.GetString("namespace"), "regcred")
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Start(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = result
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	if hr.rescale(c, 1) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	}
-
-	panic("id is unset")
 }
 
 // StopContainer - Stop a game server/container
 func (hr *httpRequestKubernetesTranslator) StopContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if result, err := hr.api.Stop(id); err == nil {
-			h := gin.H{"status": "ok"}
-			h["message"] = result
-			c.JSON(http.StatusAccepted, h)
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-		}
+	if hr.rescale(c, 0) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	}
-
-	panic("id is unset")
 }
 
 // RestartContainer - Restart a game server/container
@@ -249,4 +224,18 @@ func (hr *httpRequestKubernetesTranslator) parseIdRequest(c *gin.Context) (strin
 		return "", nil
 	}
 	return namespace, existingGameServer
+}
+
+// rescale is used for Start,Stop and Restart
+func (hr *httpRequestKubernetesTranslator) rescale(c *gin.Context, replicas int32) bool {
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
+		return false
+	}
+	err := hr.cl.Rescale(namespace, existingGameServer, replicas)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return false
+	}
+	return true
 }
