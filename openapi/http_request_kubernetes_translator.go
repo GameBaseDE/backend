@@ -113,27 +113,29 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 
 // ConfigureContainer - Configure a game server based on POST body
 func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if request, exists := c.Get("request"); exists {
-			if request, ok := request.(GameContainerConfiguration); ok {
-				if result, err := hr.api.Configure(id, request); err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				} else {
-					h := gin.H{"status": "ok"}
-					h["message"] = AsGameServerStatus(result)
-					c.JSON(http.StatusOK, h)
-				}
-
-				return
-			}
-
-			panic("request is of invalid type")
-		}
-
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
+		return
+	}
+	request, exists := c.Get("request")
+	if !exists {
 		panic("request is unset")
 	}
-
-	panic("id is unset")
+	configurationRequest, ok := request.(GameContainerConfiguration)
+	if !ok {
+		panic("request is of invalid type")
+	}
+	updatedGameserver, err := existingGameServer.UpdateGameServer(configurationRequest)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	updatedGameServer, err := hr.cl.UpdateDeployedGameserver(namespace, updatedGameserver)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, updatedGameServer)
 }
 
 // DeployContainer - Deploy a game server based on POST body

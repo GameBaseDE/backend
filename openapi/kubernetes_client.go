@@ -176,6 +176,39 @@ func (k kubernetesClient) DeleteGameserver(namespace string, target *gameServer)
 	return nil
 }
 
+func (k kubernetesClient) UpdateDeployedGameserver(namespace string, target *gameServer) (*gameServer, error) {
+	//Update ConfigMap
+	updatedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Update(&target.configmap.ConfigMap)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Update ConfigMap: " + updatedConfigMap.GetName())
+	//Update PersistentVolumeClaim
+	updatedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(&target.pvc.PersistentVolumeClaim)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Update PVC: " + updatedPVC.GetName())
+	//Update Deployment
+	updatedDeployment, err := k.Client.AppsV1().Deployments(namespace).Update(&target.deployment.Deployment)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Update Deployment: " + updatedDeployment.GetName())
+	//Deploy Service
+	updatedService, err := k.Client.CoreV1().Services(namespace).Update(&target.service.Service)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Update Service: " + updatedService.GetName())
+	return &gameServer{
+		configmap:  kubernetesComponentConfigMap{*updatedConfigMap},
+		pvc:        kubernetesComponentPVC{*updatedPVC},
+		deployment: kubernetesComponentDeployment{*updatedDeployment},
+		service:    kubernetesComponentService{*updatedService},
+	}, nil
+}
+
 func (k kubernetesClient) Rescale(namespace string, target *gameServer, targetReplicas int32) error {
 	scale, err := k.Client.AppsV1().Deployments(namespace).GetScale(target.deployment.Name, metav1.GetOptions{})
 	if err != nil {
