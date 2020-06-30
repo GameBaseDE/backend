@@ -17,12 +17,20 @@ func (gs *gameServer) getContainer() v1.Container {
 }
 
 func (gs *gameServer) GetUID() string {
-	return string(gs.deployment.UID)
+	return gs.deployment.Labels["deploymentUUID"]
 }
 
 func (gs *gameServer) GetStatus() Status {
-	//TODO implement
-	return UNKNOWN
+	//gs.deployment.Status
+	if gs.deployment.Status.Replicas == 0 {
+		return STOPPED
+	} else if gs.deployment.Status.UnavailableReplicas > 0 {
+		return STARTING
+	} else if gs.deployment.Status.AvailableReplicas > 0 {
+		return RUNNING
+	} else {
+		return UNKNOWN
+	}
 }
 
 func (gs *gameServer) GetName() string {
