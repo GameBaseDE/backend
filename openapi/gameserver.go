@@ -17,7 +17,7 @@ func (gs *gameServer) getContainer() v1.Container {
 }
 
 func (gs *gameServer) GetUID() string {
-	return string(gs.deployment.UID)
+	return gs.deployment.Labels["deploymentUUID"]
 }
 
 func (gs *gameServer) GetStatus() Status {
