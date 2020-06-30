@@ -91,9 +91,8 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 			return
 		}
 	} else {
-		existingGameServer, err := hr.cl.GetGameServer(getNamespace(c), id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		_, existingGameServer := hr.parseIdRequest(c)
+		if existingGameServer == nil {
 			return
 		}
 		existingGameServers = append(existingGameServers, existingGameServer)
@@ -212,18 +211,11 @@ func (hr *httpRequestKubernetesTranslator) RestartContainer(c *gin.Context) {
 
 // DeleteContainer - Delete deployment of game server
 func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
-	id := c.GetString("id")
-	if id == "" {
-		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: "No ID specified"})
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
 		return
 	}
-	namespace := getNamespace(c)
-	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
-		return
-	}
-	err = hr.cl.DeleteGameserver(namespace, existingGameServer)
+	err := hr.cl.DeleteGameserver(namespace, existingGameServer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
@@ -241,4 +233,20 @@ func getNamespace(c *gin.Context) string {
 	} else {
 		panic("No Namespace in gin Context")
 	}
+}
+
+// This method is used to parse all requests that specify the target Gameserver in the URL
+func (hr *httpRequestKubernetesTranslator) parseIdRequest(c *gin.Context) (string, *gameServer) {
+	id := c.GetString("id")
+	if id == "" {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: "No ID specified"})
+		return "", nil
+	}
+	namespace := getNamespace(c)
+	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return "", nil
+	}
+	return namespace, existingGameServer
 }
