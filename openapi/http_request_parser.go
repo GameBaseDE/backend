@@ -27,7 +27,7 @@ func (hr *httpRequestParser) Logout(c *gin.Context) {
 	return
 }
 
-// Logout - Invalidate the passed JWT
+// Register - Register a user and return a JWT with the user object
 func (hr *httpRequestParser) Register(c *gin.Context) {
 	var request UserRegister
 	if err := c.ShouldBindJSON(&request); err != nil {
