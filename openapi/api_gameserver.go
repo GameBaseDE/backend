@@ -16,40 +16,40 @@ import (
 
 // ConfigureContainer - Configure a game server based on POST body
 func ConfigureContainer(c *gin.Context) {
-	authenticator.ConfigureContainer(c)
+	NewHttpRequestProcessingChain().ConfigureContainer(c)
 }
 
 // DeleteContainer - Delete deployment of game server
 func DeleteContainer(c *gin.Context) {
-	authenticator.DeleteContainer(c)
+	NewHttpRequestProcessingChain().DeleteContainer(c)
 }
 
 // DeployContainer - Deploy a game server based on POST body
 func DeployContainer(c *gin.Context) {
-	authenticator.DeployContainer(c)
+	NewHttpRequestProcessingChain().DeployContainer(c)
 }
 
 // GetStatus - Query status of all deployments
 func GetStatus(c *gin.Context) {
-	authenticator.GetStatus(c)
+	NewHttpRequestProcessingChain().GetStatus(c)
 }
 
 // ListTemplates - Get a list of all available game server templates
 func ListTemplates(c *gin.Context) {
-	authenticator.ListTemplates(c)
+	NewHttpRequestProcessingChain().ListTemplates(c)
 }
 
 // RestartContainer - Restart a game server/container
 func RestartContainer(c *gin.Context) {
-	authenticator.RestartContainer(c)
+	NewHttpRequestProcessingChain().RestartContainer(c)
 }
 
 // StartContainer - Start a game server/container
 func StartContainer(c *gin.Context) {
-	authenticator.StartContainer(c)
+	NewHttpRequestProcessingChain().StartContainer(c)
 }
 
 // StopContainer - Stop a game server/container
 func StopContainer(c *gin.Context) {
-	authenticator.StopContainer(c)
+	NewHttpRequestProcessingChain().StopContainer(c)
 }
