@@ -128,3 +128,13 @@ func (hr *httpRequestParser) DeleteContainer(c *gin.Context) {
 	c.Set("id", id)
 	hr.nextHandler.DeleteContainer(c)
 }
+
+func (hr *httpRequestParser) UpdateUserProfile(c *gin.Context) {
+	var request UserProfile
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.Set("request", request)
+	hr.nextHandler.UpdateUserProfile(c)
+}

@@ -42,13 +42,7 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 		panic("request is of invalid type")
 	}
 
-	uuid, _, err := hr.cl.GetUuid(user.Email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	namespace := defaultNamespaceUser + uuid
-	if err := hr.cl.SetUserSecret(namespace, user); err != nil {
+	if err := hr.cl.SetUserSecret(user.Email, user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -204,6 +198,62 @@ func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func (hr *httpRequestKubernetesTranslator) UpdateUserProfile(c *gin.Context) {
+	request, exists := c.Get("request")
+	if !exists {
+		panic("request is unset")
+	}
+
+	oldEmail, err := extractEmail(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return
+	}
+
+	user := request.(UserProfile)
+	password := user.Password
+	gamebaseUser := GamebaseUser{
+		Name:     user.Username,
+		Email:    user.Email,
+		Password: password.New,
+		Gravatar: user.Gravatar,
+	}
+
+	k := hr.kubernetesClient()
+
+	oldSecret, err := k.GetUserSecret(oldEmail)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return
+	}
+
+	if oldSecret.Password != password.Old {
+		c.JSON(http.StatusBadRequest, Exception{Id: "", Details: "invalid password"})
+		return
+	}
+
+	newEmail := user.Email
+	if newEmail == "" {
+		newEmail = oldEmail
+	}
+
+	err = k.SetUserSecret(newEmail, gamebaseUser)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+		return
+	}
+
+	if newEmail != oldEmail {
+		err := k.DeleteUserSecret(oldEmail)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
