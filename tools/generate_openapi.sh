@@ -25,7 +25,7 @@ mkdir tmp || exit 1
   )
 
   npm install @openapitools/openapi-generator-cli afc11hn/gofmt.js || exit 1
-  node_modules/@openapitools/openapi-generator-cli/bin/openapi-generator generate -i swagger-rest-api/yaml-resolved/gamebase-api-specification.yaml -g go-gin-server -o out || exit 1
+  node_modules/@openapitools/openapi-generator-cli/bin/openapi-generator generate -i swagger-rest-api/yaml-unresolved/swagger.yaml -g go-gin-server -o out || exit 1
 )
 
 node tools/rewrite.js || exit 1
@@ -36,6 +36,7 @@ mv openapi/authentication_*.go tmp/out/go
 mv openapi/http_* tmp/out/go
 mv openapi/kubernetes*.go tmp/out/go
 mv openapi/user*.go tmp/out/go
+mv openapi/gameserver*.go tmp/out/go
 
 rsync --delete -achv tmp/out/api/ api/ || exit 1
 rsync --delete -achv tmp/out/go/ openapi/ || exit 1
