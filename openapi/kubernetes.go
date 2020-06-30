@@ -103,20 +103,6 @@ func (api API) Configure(id string, request GameContainerConfiguration) (*appsv1
 	container.Image = request.Resources.TemplatePath
 	container.Ports = []apiv1.ContainerPort{}
 
-	for port := range request.Resources.Ports.Tcp {
-		container.Ports = append(container.Ports, apiv1.ContainerPort{
-			Protocol:      apiv1.ProtocolTCP,
-			ContainerPort: int32(port),
-		})
-	}
-
-	for port := range request.Resources.Ports.Udp {
-		container.Ports = append(container.Ports, apiv1.ContainerPort{
-			Protocol:      apiv1.ProtocolUDP,
-			ContainerPort: int32(port),
-		})
-	}
-
 	return api.GetDeploymentClient().Create(&deployment)
 }
 
