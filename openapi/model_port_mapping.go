@@ -10,13 +10,13 @@
 
 package openapi
 
-type Status string
+type PortMapping struct {
 
-// List of Status
-const (
-	UNKNOWN Status = "UNKNOWN"
-	STARTING Status = "STARTING"
-	RUNNING Status = "RUNNING"
-	STOPPED Status = "STOPPED"
-	ERROR Status = "ERROR"
-)
+	Protocol Protocol `json:"protocol"`
+
+	// Externally exposed Port Number
+	NodePort int32 `json:"nodePort"`
+
+	// Internal Port Number routed to Container
+	ContainerPort int32 `json:"containerPort"`
+}

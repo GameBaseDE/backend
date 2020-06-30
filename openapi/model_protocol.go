@@ -10,13 +10,10 @@
 
 package openapi
 
-type Status string
+type Protocol string
 
-// List of Status
+// List of Protocol
 const (
-	UNKNOWN Status = "UNKNOWN"
-	STARTING Status = "STARTING"
-	RUNNING Status = "RUNNING"
-	STOPPED Status = "STOPPED"
-	ERROR Status = "ERROR"
+	TCP Protocol = "TCP"
+	UDP Protocol = "UDP"
 )

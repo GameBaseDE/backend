@@ -6,7 +6,7 @@ info:
   description: This is the REST API used as an communication layer between backend
     and frontend.
   title: GameBase Communication API
-  version: 2.1.0
+  version: 2.3.0
 externalDocs:
   description: Learn more about GameBase
   url: https://blog.game-base.de
@@ -22,6 +22,8 @@ tags:
   name: gameserver
 - description: Authentication endpoints
   name: auth
+- description: User management endpoints
+  name: user
 paths:
   /gs/status:
     get:
@@ -47,7 +49,7 @@ paths:
       tags:
       - gameserver
   /gs/start/{id}:
-    get:
+    post:
       operationId: startContainer
       parameters:
       - description: ID of game server to start
@@ -73,7 +75,7 @@ paths:
       tags:
       - gameserver
   /gs/stop/{id}:
-    get:
+    post:
       operationId: stopContainer
       parameters:
       - description: ID of game server to stop
@@ -99,7 +101,7 @@ paths:
       tags:
       - gameserver
   /gs/restart/{id}:
-    get:
+    post:
       operationId: restartContainer
       parameters:
       - description: ID of game server to restart
@@ -132,14 +134,14 @@ paths:
       responses:
         "201":
           description: Deployment successful
-        "400":
-          description: Invalid input
         "500":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Exception'
           description: Deployment failed
+        "400":
+          description: Invalid input
       security:
       - Bearer: []
       summary: Deploy a game server based on POST body
@@ -162,14 +164,14 @@ paths:
       responses:
         "201":
           description: Configuration successful
-        "400":
-          description: Invalid input
         "500":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Exception'
           description: Configuration failed
+        "400":
+          description: Invalid input
       security:
       - Bearer: []
       summary: Configure a game server based on POST body
@@ -235,10 +237,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: Login successful
-        "400":
-          description: Invalid input
         "403":
           description: Login failed
+        "400":
+          description: Invalid input
       summary: Login a user and return a JWT with the user object
       tags:
       - auth
@@ -253,10 +255,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: Registration successful
-        "400":
-          description: Invalid input
         "403":
           description: Registration failed
+        "400":
+          description: Invalid input
       summary: Register a user and return a JWT with the user object
       tags:
       - auth
@@ -272,8 +274,32 @@ paths:
       summary: Invalidate the passed JWT
       tags:
       - auth
+  /user/update:
+    post:
+      operationId: updateUserProfile
+      requestBody:
+        $ref: '#/components/requestBodies/UserProfile'
+      responses:
+        "200":
+          description: Successful operation
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exception'
+          description: User's profile could not be updated
+      security:
+      - Bearer: []
+      summary: Update fields of a user's profile
+      tags:
+      - user
 components:
   requestBodies:
+    UserProfile:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserProfile'
     UserLogin:
       content:
         application/json:
@@ -303,9 +329,9 @@ components:
       default: UNKNOWN
       enum:
       - UNKNOWN
+      - STARTING
       - RUNNING
       - STOPPED
-      - RESTARTING
       - ERROR
       type: string
     RestartBehavior:
@@ -375,6 +401,27 @@ components:
       - fullName
       - token
       type: object
+    UserProfile:
+      example:
+        password:
+          new: new
+          old: old
+        gravatar: gravatar
+        email: email
+        username: username
+      properties:
+        username:
+          description: Username of the user
+          type: string
+        email:
+          description: E-mail address of the user
+          type: string
+        password:
+          $ref: '#/components/schemas/UserProfile_password'
+        gravatar:
+          description: E-mail address of the Gravatar to be used
+          type: string
+      type: object
     Exception:
       properties:
         id:
@@ -390,6 +437,32 @@ components:
       - details
       - exception
       type: object
+    Protocol:
+      default: TCP
+      enum:
+      - TCP
+      - UDP
+      type: string
+    PortMapping:
+      example:
+        containerPort: 6
+        nodePort: 0
+      properties:
+        protocol:
+          $ref: '#/components/schemas/Protocol'
+        nodePort:
+          description: Externally exposed Port Number
+          format: int16
+          type: integer
+        containerPort:
+          description: Internal Port Number routed to Container
+          format: int16
+          type: integer
+      required:
+      - containerPort
+      - nodePort
+      - protocol
+      type: object
     GameContainerStatus:
       example:
         configuration:
@@ -399,17 +472,14 @@ components:
             environmentVars:
               key: environmentVars
             ports:
-              tcp:
-              - 0
-              - 0
-              udp:
-              - 6
-              - 6
+            - containerPort: 6
+              nodePort: 0
+            - containerPort: 6
+              nodePort: 0
             templatePath: templatePath
           details:
             serverName: serverName
             description: description
-            ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         gameServerDetails:
           key: gameServerDetails
         id: id
@@ -451,17 +521,14 @@ components:
           environmentVars:
             key: environmentVars
           ports:
-            tcp:
-            - 0
-            - 0
-            udp:
-            - 6
-            - 6
+          - containerPort: 6
+            nodePort: 0
+          - containerPort: 6
+            nodePort: 0
           templatePath: templatePath
         details:
           serverName: serverName
           description: description
-          ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         details:
           $ref: '#/components/schemas/GameContainerConfiguration_details'
@@ -471,46 +538,30 @@ components:
       - details
       - resources.templatePath
       type: object
+    UserProfile_password:
+      example:
+        new: new
+        old: old
+      properties:
+        old:
+          description: Old password of the user as a confirmation step
+          type: string
+        new:
+          description: New desired password of the user
+          type: string
     GameContainerConfiguration_details:
       description: General details of server
       example:
         serverName: serverName
         description: description
-        ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         serverName:
           description: Name of server that will displayed on one's Dashboard
-          type: string
-        ownerId:
-          description: UUID of owner whom this server belongs to
-          format: uuid
           type: string
         description:
           description: Short description of server which will be displayed on one's
             Dashboard
           type: string
-      type: object
-    GameContainerConfiguration_resources_ports:
-      description: Ports to be allocated
-      example:
-        tcp:
-        - 0
-        - 0
-        udp:
-        - 6
-        - 6
-      properties:
-        tcp:
-          items:
-            format: int16
-            type: integer
-          type: array
-        udp:
-          items:
-            format: int16
-            type: integer
-          type: array
-      type: object
     GameContainerConfiguration_resources:
       example:
         startupArgs: startupArgs
@@ -518,12 +569,10 @@ components:
         environmentVars:
           key: environmentVars
         ports:
-          tcp:
-          - 0
-          - 0
-          udp:
-          - 6
-          - 6
+        - containerPort: 6
+          nodePort: 0
+        - containerPort: 6
+          nodePort: 0
         templatePath: templatePath
       properties:
         templatePath:
@@ -531,7 +580,10 @@ components:
             for game container creation
           type: string
         ports:
-          $ref: '#/components/schemas/GameContainerConfiguration_resources_ports'
+          description: PortMappings for the Container
+          items:
+            $ref: '#/components/schemas/PortMapping'
+          type: array
         memory:
           default: -1
           description: Memory to be allocated
@@ -546,7 +598,6 @@ components:
             type: string
           description: Environment variables that configure the game server
           type: object
-      type: object
   securitySchemes:
     Bearer:
       description: |
