@@ -92,7 +92,6 @@ func (gs *gameServer) readGameContainerStatus() GameContainerStatus {
 		Configuration: GameContainerConfiguration{
 			Details: GameContainerConfigurationDetails{
 				ServerName:  gs.GetName(),
-				OwnerId:     "", //FIXME remove
 				Description: gs.GetDescription(),
 			},
 			Resources: GameContainerConfigurationResources{
