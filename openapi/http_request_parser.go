@@ -13,6 +13,10 @@ func newHttpRequestParser() *httpRequestParser {
 	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
 }
 
+func (hr *httpRequestParser) kubernetesClient() kubernetesClient {
+	return hr.nextHandler.kubernetesClient()
+}
+
 // Login - Login a user and return a JWT with the user object
 func (hr *httpRequestParser) Login(c *gin.Context) {
 	return
@@ -23,9 +27,22 @@ func (hr *httpRequestParser) Logout(c *gin.Context) {
 	return
 }
 
-// Logout - Invalidate the passed JWT
+// Register - Register a user and return a JWT with the user object
 func (hr *httpRequestParser) Register(c *gin.Context) {
-	return
+	var request UserRegister
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Password != request.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must match confirmation password"})
+		return
+	}
+
+	user := GamebaseUser{Name: request.FullName, Email: request.Email, Password: request.Password}
+	c.Set("request", user)
+	hr.nextHandler.Register(c)
 }
 
 // ListTemplates - Get a list of all available game server images
