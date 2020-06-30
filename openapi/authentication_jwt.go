@@ -1,8 +1,11 @@
 package openapi
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/twinj/uuid"
+	"log"
 	"os"
 	"time"
 )
@@ -12,7 +15,23 @@ func defaultSigningMethod() *jwt.SigningMethodHMAC {
 }
 
 func hmacSampleSecret() []byte {
-	return []byte(os.Getenv("ACCESS_SECRET"))
+	//FIXME only call once on startup
+	key := make([]byte, 32)
+	secret := os.Getenv("ACCESS_SECRET")
+	if secret == "" {
+		_, err := rand.Read(key)
+		if err != nil {
+			log.Fatal("Could not create random hmacSampleSecret")
+		}
+		os.Setenv("ACCESS_SECRET", base64.StdEncoding.EncodeToString(key))
+		return key
+	} else {
+		readKey, err := base64.StdEncoding.DecodeString(secret)
+		if err != nil {
+			return []byte(secret)
+		}
+		return readKey
+	}
 }
 
 type userClaims struct {
