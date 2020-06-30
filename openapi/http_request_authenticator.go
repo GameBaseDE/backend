@@ -239,7 +239,7 @@ func extractNamespace(c *gin.Context, k kubernetesClient) error {
 		return err
 	}
 
-	uuid, _, err := k.GetUuid(email)
+	uuid, err := k.GetUuid(email)
 	if err != nil {
 		return err
 	}
