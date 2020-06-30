@@ -153,6 +153,27 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 	}, nil
 }
 
+func (k kubernetesClient) DeleteGameserver(namespace string, target *gameServer) error {
+	deleteOptions := metav1.DeleteOptions{}
+	err := k.Client.CoreV1().ConfigMaps(namespace).Delete(target.configmap.Name, &deleteOptions)
+	if err != nil {
+		return err
+	}
+	err = k.Client.CoreV1().PersistentVolumeClaims(namespace).Delete(target.pvc.Name, &deleteOptions)
+	if err != nil {
+		return err
+	}
+	err = k.Client.AppsV1().Deployments(namespace).Delete(target.deployment.Name, &deleteOptions)
+	if err != nil {
+		return err
+	}
+	err = k.Client.CoreV1().Services(namespace).Delete(target.service.Name, &deleteOptions)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
 	//base64secret = "{\"auths\": {\"url.to.server\": {\"auth\": \"base64=\"}}}"
 	secretMap := map[string]string{".dockerconfigjson": base64secret}
