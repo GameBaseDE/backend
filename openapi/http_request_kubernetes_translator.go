@@ -152,9 +152,9 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	gameServer, err := hr.cl.DeployTemplate(getNamespace(c), template)
+	_, err = hr.cl.DeployTemplate(getNamespace(c), template)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Exception{Id: gameServer.GetUID(), Details: err.Error()})
+		c.JSON(http.StatusInternalServerError, Exception{Details: err.Error()})
 		return
 	}
 	h := gin.H{"status": "ok"}
