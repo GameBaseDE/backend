@@ -17,4 +17,5 @@ type httpRequestHandler interface {
 	StopContainer(c *gin.Context)
 	RestartContainer(c *gin.Context)
 	DeleteContainer(c *gin.Context)
+	UpdateUserProfile(c *gin.Context)
 }

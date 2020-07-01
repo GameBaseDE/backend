@@ -11,12 +11,10 @@
 package openapi
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
 // UpdateUserProfile - Update fields of a user's profile
 func UpdateUserProfile(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{})
+	NewHttpRequestProcessingChain().UpdateUserProfile(c)
 }
