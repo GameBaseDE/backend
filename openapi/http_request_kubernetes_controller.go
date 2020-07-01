@@ -58,7 +58,10 @@ func (hr *httpRequestKubernetesController) Register(c *gin.Context) {
 		return
 	}
 
-	token, _, err := createToken(user.Email, user.Name)
+	token, _, err := createToken(GamebaseUser{
+		Name:  user.Name,
+		Email: user.Email,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

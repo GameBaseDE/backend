@@ -35,14 +35,15 @@ func hmacSampleSecret() []byte {
 }
 
 type userClaims struct {
-	TokenUuid string `json:"token_uuid,omitempty"`
-	UserEmail string `json:"user_email,omitempty"`
-	UserName  string `json:"user_name,omitempty"`
+	TokenUuid    string `json:"token_uuid,omitempty"`
+	UserEmail    string `json:"user_email,omitempty"`
+	UserName     string `json:"user_name,omitempty"`
+	UserGravatar string `json:"user_gravatar,omitempty"`
 	jwt.StandardClaims
 }
 
 // Create a pair jwt tokens for authentication and refresh
-func createToken(email string, name string) (string, string, error) {
+func createToken(user GamebaseUser) (string, string, error) {
 	const accessDuration = time.Minute * 15
 	const refreshDuration = time.Hour * 24 * 7
 
@@ -51,9 +52,10 @@ func createToken(email string, name string) (string, string, error) {
 	// access access
 	var err error
 	atClaims := userClaims{
-		TokenUuid: uuid.NewV4().String(),
-		UserEmail: email,
-		UserName:  name,
+		TokenUuid:    uuid.NewV4().String(),
+		UserEmail:    user.Email,
+		UserName:     user.Name,
+		UserGravatar: user.Gravatar,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: now.Add(accessDuration).Unix(),
 		},
@@ -67,8 +69,6 @@ func createToken(email string, name string) (string, string, error) {
 	// refresh access
 	rtClaims := userClaims{
 		TokenUuid: uuid.NewV4().String(),
-		UserEmail: email,
-		UserName:  name,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: now.Add(refreshDuration).Unix(),
 		},

@@ -44,7 +44,7 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	token, _, err := createToken(user.Email, user.Name)
+	token, _, err := createToken(*user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -201,7 +201,7 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 		return
 	}
 
-	token, _, err := createToken(user.Email, user.Name)
+	token, _, err := createToken(*user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
