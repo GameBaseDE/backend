@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
@@ -8,8 +9,8 @@ import (
 	"strings"
 )
 
-func isValidLogin(request UserLogin, k kubernetesClient) (bool, error) {
-	user, err := k.GetUserSecret(request.Email)
+func isValidLogin(ctx context.Context, request UserLogin, k kubernetesClient) (bool, error) {
+	user, err := k.GetUserSecret(ctx, request.Email)
 	if err != nil {
 		return false, err
 	}

@@ -1,11 +1,11 @@
 package openapi
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	uuidGen "github.com/twinj/uuid"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -44,8 +44,8 @@ func newKubernetesClientset() kubernetesClient {
 	return kubernetesClient{clientset}
 }
 
-func (k kubernetesClient) GetGameServerList(namespace string) ([]*gameServer, error) {
-	allDeployments, err := k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
+func (k kubernetesClient) GetGameServerList(ctx context.Context, namespace string) ([]*gameServer, error) {
+	allDeployments, err := k.Client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (k kubernetesClient) GetGameServerList(namespace string) ([]*gameServer, er
 		if !exists {
 			fmt.Println("Found Deployment " + deployment.Name + " without deploymentUUID")
 		}
-		uuidGameServer, err := k.GetGameServer(namespace, uuid)
+		uuidGameServer, err := k.GetGameServer(ctx, namespace, uuid)
 		if err != nil {
 			fmt.Println("Could not find complete GameServer for UUID:" + uuid)
 			fmt.Println(err)
@@ -66,29 +66,29 @@ func (k kubernetesClient) GetGameServerList(namespace string) ([]*gameServer, er
 	return gameServers, nil
 }
 
-func (k kubernetesClient) GetGameServer(namespace string, uuid string) (*gameServer, error) {
-	existingConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+func (k kubernetesClient) GetGameServer(ctx context.Context, namespace string, uuid string) (*gameServer, error) {
+	existingConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
 	if num := len(existingConfigMap.Items); num != 1 {
 		return nil, errors.New("Number of selected ConfigMaps for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
-	existingPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	existingPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).List(ctx, metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
 	if num := len(existingPVC.Items); num != 1 {
 		return nil, errors.New("Number of selected PVCs for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
-	existingDeployment, err := k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	existingDeployment, err := k.Client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
 	if num := len(existingDeployment.Items); num != 1 {
 		return nil, errors.New("Number of selected Deployments for UUID " + uuid + " == " + fmt.Sprint(num) + " should be 1")
 	}
-	existingService, err := k.Client.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
+	existingService, err := k.Client.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{LabelSelector: "deploymentUUID=" + uuid})
 	if err != nil {
 		return nil, err
 	}
@@ -103,16 +103,17 @@ func (k kubernetesClient) GetGameServer(namespace string, uuid string) (*gameSer
 	}, nil
 }
 
-func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerTemplate) (*gameServer, error) {
+func (k kubernetesClient) DeployTemplate(ctx context.Context, namespace string, template *gameServerTemplate) (*gameServer, error) {
 	deploymentPayload := template.GetUniqueGameServer()
+	createOptions := metav1.CreateOptions{}
 	//Deploy ConfigMap
-	deployedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Create(&deploymentPayload.configmap.ConfigMap)
+	deployedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Create(ctx, &deploymentPayload.configmap.ConfigMap, createOptions)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Deployed ConfigMap: " + deployedConfigMap.GetName())
 	//Deploy PersistentVolumeClaim
-	deployedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Create(&deploymentPayload.pvc.PersistentVolumeClaim)
+	deployedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, &deploymentPayload.pvc.PersistentVolumeClaim, createOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +137,13 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 		}
 	}
 	//Deploy Deployment
-	deployedDeployment, err := k.Client.AppsV1().Deployments(namespace).Create(&payloadDeployment)
+	deployedDeployment, err := k.Client.AppsV1().Deployments(namespace).Create(ctx, &payloadDeployment, createOptions)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Deployed Deployment: " + deployedDeployment.GetName())
 	//Deploy Service
-	deployedService, err := k.Client.CoreV1().Services(namespace).Create(&deploymentPayload.service.Service)
+	deployedService, err := k.Client.CoreV1().Services(namespace).Create(ctx, &deploymentPayload.service.Service, createOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -155,48 +156,49 @@ func (k kubernetesClient) DeployTemplate(namespace string, template *gameServerT
 	}, nil
 }
 
-func (k kubernetesClient) DeleteGameserver(namespace string, target *gameServer) error {
+func (k kubernetesClient) DeleteGameserver(ctx context.Context, namespace string, target *gameServer) error {
 	deleteOptions := metav1.DeleteOptions{}
-	err := k.Client.CoreV1().ConfigMaps(namespace).Delete(target.configmap.Name, &deleteOptions)
+	err := k.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, target.configmap.Name, deleteOptions)
 	if err != nil {
 		return err
 	}
-	err = k.Client.CoreV1().PersistentVolumeClaims(namespace).Delete(target.pvc.Name, &deleteOptions)
+	err = k.Client.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, target.pvc.Name, deleteOptions)
 	if err != nil {
 		return err
 	}
-	err = k.Client.AppsV1().Deployments(namespace).Delete(target.deployment.Name, &deleteOptions)
+	err = k.Client.AppsV1().Deployments(namespace).Delete(ctx, target.deployment.Name, deleteOptions)
 	if err != nil {
 		return err
 	}
-	err = k.Client.CoreV1().Services(namespace).Delete(target.service.Name, &deleteOptions)
+	err = k.Client.CoreV1().Services(namespace).Delete(ctx, target.service.Name, deleteOptions)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (k kubernetesClient) UpdateDeployedGameserver(namespace string, target *gameServer) (*gameServer, error) {
+func (k kubernetesClient) UpdateDeployedGameserver(ctx context.Context, namespace string, target *gameServer) (*gameServer, error) {
+	updateOptions := metav1.UpdateOptions{}
 	//Update ConfigMap
-	updatedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Update(&target.configmap.ConfigMap)
+	updatedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Update(ctx, &target.configmap.ConfigMap, updateOptions)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Update ConfigMap: " + updatedConfigMap.GetName())
 	//Update PersistentVolumeClaim
-	updatedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(&target.pvc.PersistentVolumeClaim)
+	updatedPVC, err := k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, &target.pvc.PersistentVolumeClaim, updateOptions)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Update PVC: " + updatedPVC.GetName())
 	//Update Deployment
-	updatedDeployment, err := k.Client.AppsV1().Deployments(namespace).Update(&target.deployment.Deployment)
+	updatedDeployment, err := k.Client.AppsV1().Deployments(namespace).Update(ctx, &target.deployment.Deployment, updateOptions)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Update Deployment: " + updatedDeployment.GetName())
 	//Deploy Service
-	updatedService, err := k.Client.CoreV1().Services(namespace).Update(&target.service.Service)
+	updatedService, err := k.Client.CoreV1().Services(namespace).Update(ctx, &target.service.Service, updateOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -209,27 +211,32 @@ func (k kubernetesClient) UpdateDeployedGameserver(namespace string, target *gam
 	}, nil
 }
 
-func (k kubernetesClient) Rescale(namespace string, target *gameServer, targetReplicas int32) error {
-	scale, err := k.Client.AppsV1().Deployments(namespace).GetScale(target.deployment.Name, metav1.GetOptions{})
+func (k kubernetesClient) Rescale(ctx context.Context, namespace string, target *gameServer, targetReplicas int32) error {
+	scale, err := k.Client.AppsV1().Deployments(namespace).GetScale(ctx, target.deployment.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	scale.Spec.Replicas = targetReplicas
-	_, err = k.Client.AppsV1().Deployments(namespace).UpdateScale(target.deployment.Name, scale)
+	_, err = k.Client.AppsV1().Deployments(namespace).UpdateScale(ctx, target.deployment.Name, scale, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (k kubernetesClient) CreateDockerConfigSecret(namespace string, name string, base64secret string) (*v1.Secret, error) {
+func (k kubernetesClient) CreateDockerConfigSecret(ctx context.Context, namespace string, name string, base64secret string) (*v1.Secret, error) {
 	//base64secret = "{\"auths\": {\"url.to.server\": {\"auth\": \"base64=\"}}}"
 	secretMap := map[string]string{".dockerconfigjson": base64secret}
-	return k.CreateSecret(namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
+	return k.CreateSecret(ctx, namespace, name, v1.SecretTypeDockerConfigJson, secretMap)
 }
 
-func (k kubernetesClient) CreateSecret(namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
-	_, _ = k.CreateNamespace(namespace)
+// Create a kubernetes secret which stores the user information
+func (k kubernetesClient) CreateUserSecret(ctx context.Context, namespace string, name string, user GamebaseUser) (*v1.Secret, error) {
+	return k.CreateSecret(ctx, namespace, name, v1.SecretTypeOpaque, user.ToSecretData())
+}
+
+func (k kubernetesClient) CreateSecret(ctx context.Context, namespace string, name string, secretType v1.SecretType, stringData map[string]string) (*v1.Secret, error) {
+	_, _ = k.CreateNamespace(ctx, namespace)
 	secret := v1.Secret{
 		Type: secretType,
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,45 +244,45 @@ func (k kubernetesClient) CreateSecret(namespace string, name string, secretType
 		},
 		StringData: stringData,
 	}
-	createdSecret, err := k.Client.CoreV1().Secrets(namespace).Create(&secret)
+	createdSecret, err := k.Client.CoreV1().Secrets(namespace).Create(ctx, &secret, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return createdSecret, nil
 }
 
-func (k kubernetesClient) SetDefaultServiceAccountImagePullSecret(namespace string, name string) (*v1.ServiceAccount, error) {
-	defaultServiceAccount, err := k.Client.CoreV1().ServiceAccounts(namespace).Get("default", metav1.GetOptions{})
+func (k kubernetesClient) SetDefaultServiceAccountImagePullSecret(ctx context.Context, namespace string, name string) (*v1.ServiceAccount, error) {
+	defaultServiceAccount, err := k.Client.CoreV1().ServiceAccounts(namespace).Get(ctx, "default", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	defaultServiceAccount.ImagePullSecrets = append(defaultServiceAccount.ImagePullSecrets, v1.LocalObjectReference{Name: name})
-	updatedServiceAccount, err := k.Client.CoreV1().ServiceAccounts(namespace).Update(defaultServiceAccount)
+	updatedServiceAccount, err := k.Client.CoreV1().ServiceAccounts(namespace).Update(ctx, defaultServiceAccount, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return updatedServiceAccount, nil
 }
 
-func (k kubernetesClient) GetSecret(namespace string, name string) (*v1.Secret, error) {
-	return k.Client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+func (k kubernetesClient) GetSecret(ctx context.Context, namespace string, name string) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (k kubernetesClient) UpdateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
-	return k.Client.CoreV1().Secrets(namespace).Update(secret)
+func (k kubernetesClient) UpdateSecret(ctx context.Context, namespace string, secret *v1.Secret) (*v1.Secret, error) {
+	return k.Client.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
 }
 
 // Set the user information either by creating the kubernetes secret
 // or if it already exists, updating it
-func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
+func (k kubernetesClient) SetUserSecret(ctx context.Context, email string, user GamebaseUser) error {
 	encoded := encodeEmail(email)
 
-	secret, err := k.CreateSecret(defaultNamespace, encoded, v1.SecretTypeOpaque, map[string]string{})
+	secret, err := k.CreateSecret(ctx, defaultNamespace, encoded, v1.SecretTypeOpaque, map[string]string{})
 	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 		return err
 	}
 
-	secret, err = k.GetSecret(defaultNamespace, encoded)
+	secret, err = k.GetSecret(ctx, defaultNamespace, encoded)
 	if err != nil {
 		return err
 	}
@@ -297,14 +304,14 @@ func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
 		}
 	}
 
-	_, err = k.UpdateSecret(defaultNamespace, secret)
+	_, err = k.UpdateSecret(ctx, defaultNamespace, secret)
 	return err
 }
 
 // Lookup the uuid of the user
-func (k kubernetesClient) GetUuid(email string) (string, error) {
+func (k kubernetesClient) GetUuid(ctx context.Context, email string) (string, error) {
 	encoded := encodeEmail(email)
-	secret, err := k.GetSecret(defaultNamespace, encoded)
+	secret, err := k.GetSecret(ctx, defaultNamespace, encoded)
 	if err != nil {
 		return "", err
 	}
@@ -316,22 +323,22 @@ func (k kubernetesClient) GetUuid(email string) (string, error) {
 	return "", errors.New("secret does not contain uuid")
 }
 
-func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
+func (k kubernetesClient) CreateNamespace(ctx context.Context, name string) (*v1.Namespace, error) {
 	namespace := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}
-	return k.Client.CoreV1().Namespaces().Create(&namespace)
+	return k.Client.CoreV1().Namespaces().Create(ctx, &namespace, metav1.CreateOptions{})
 }
 
-func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
-	_, err := k.CreateNamespace(defaultNamespace)
+func (k kubernetesClient) GetUserSecret(ctx context.Context, email string) (*GamebaseUser, error) {
+	_, err := k.CreateNamespace(ctx, defaultNamespace)
 	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
 		return nil, err
 	}
 
-	secret, err := k.GetSecret(defaultNamespace, encodeEmail(email))
+	secret, err := k.GetSecret(ctx, defaultNamespace, encodeEmail(email))
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +347,7 @@ func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
 	return &user, nil
 }
 
-func (k kubernetesClient) DeleteUserSecret(email string) error {
+func (k kubernetesClient) DeleteUserSecret(ctx context.Context, email string) error {
 	deleteOptions := metav1.DeleteOptions{}
-	return k.Client.CoreV1().Secrets(defaultNamespace).Delete(encodeEmail(email), &deleteOptions)
+	return k.Client.CoreV1().Secrets(defaultNamespace).Delete(ctx, encodeEmail(email), deleteOptions)
 }
