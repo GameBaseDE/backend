@@ -224,40 +224,6 @@ func (k kubernetesClient) SetDefaultServiceAccountImagePullSecret(namespace stri
 	return updatedServiceAccount, nil
 }
 
-func (k kubernetesClient) GetConfigMaps(namespace string) (*v1.ConfigMapList, error) {
-	return k.Client.CoreV1().ConfigMaps(namespace).List(metav1.ListOptions{})
-}
-
-func (k kubernetesClient) GetPVCs(namespace string) (*v1.PersistentVolumeClaimList, error) {
-	return k.Client.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{})
-}
-
-func (k kubernetesClient) GetDeploymentList(namespace string) (*appsv1.DeploymentList, error) {
-	return k.Client.AppsV1().Deployments(namespace).List(metav1.ListOptions{})
-}
-
-func (k kubernetesClient) GetServices(namespace string) (*v1.ServiceList, error) {
-	return k.Client.CoreV1().Services(namespace).List(metav1.ListOptions{})
-}
-
-func (k kubernetesClient) GetNamespaceList() (*v1.NamespaceList, error) {
-	return k.Client.CoreV1().Namespaces().List(metav1.ListOptions{})
-}
-
-func (k kubernetesClient) GetPVCs2(namespace string, selector string) (*v1.PersistentVolumeClaimList, error) {
-	return k.Client.CoreV1().PersistentVolumeClaims(namespace).List(metav1.ListOptions{LabelSelector: selector})
-}
-
-func (k kubernetesClient) UpdatePVC(namespace string, name string) (*v1.PersistentVolumeClaim, error) {
-	pvc, _ := k.Client.CoreV1().PersistentVolumeClaims(namespace).Get(name, metav1.GetOptions{})
-	pvc.Labels["key2"] = "value"
-	return k.Client.CoreV1().PersistentVolumeClaims(namespace).Update(pvc)
-}
-
-func (k kubernetesClient) GetSecrets(namespace string, selector string) (*v1.SecretList, error) {
-	return k.Client.CoreV1().Secrets(namespace).List(metav1.ListOptions{LabelSelector: selector})
-}
-
 func (k kubernetesClient) GetSecret(namespace string, name string) (*v1.Secret, error) {
 	return k.Client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 }
