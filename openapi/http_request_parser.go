@@ -10,7 +10,7 @@ type httpRequestParser struct {
 }
 
 func newHttpRequestParser() *httpRequestParser {
-	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
+	return &httpRequestParser{nextHandler: newHttpRequestKubernetesController()}
 }
 
 func (hr *httpRequestParser) kubernetesClient() kubernetesClient {
