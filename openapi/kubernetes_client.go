@@ -282,11 +282,11 @@ func (k kubernetesClient) SetUserSecret(email string, user GamebaseUser) error {
 	}
 
 	// new users might not have uuid so we need to generate one
-	random := make([]byte, 4)
-	rand.Read(random)
-	id := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user", email, time.Now().UTC(), random)
-	uuid := uuidGen.Formatter(id, uuidGen.FormatHex)
 	if secret.Data == nil {
+		random := make([]byte, 4)
+		rand.Read(random)
+		id := uuidGen.NewV5(uuidGen.NameSpaceURL, "game-base.de/backend/user", email, time.Now().UTC(), random)
+		uuid := uuidGen.Formatter(id, uuidGen.FormatHex)
 		secret.Data = map[string][]byte{
 			"uuid": []byte(uuid),
 		}
@@ -327,6 +327,11 @@ func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
 }
 
 func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
+	_, err := k.CreateNamespace(defaultNamespace)
+	if err != nil && !strings.HasSuffix(err.Error(), "already exists") {
+		return nil, err
+	}
+
 	secret, err := k.GetSecret(defaultNamespace, encodeEmail(email))
 	if err != nil {
 		return nil, err
