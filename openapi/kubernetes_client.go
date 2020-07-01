@@ -328,7 +328,7 @@ func (k kubernetesClient) CreateNamespace(name string) (*v1.Namespace, error) {
 
 func (k kubernetesClient) GetUserSecret(email string) (*GamebaseUser, error) {
 	secret, err := k.GetSecret(defaultNamespace, encodeEmail(email))
-	if err != nil && !strings.HasSuffix(err.Error(), "not found") {
+	if err != nil {
 		return nil, err
 	}
 
