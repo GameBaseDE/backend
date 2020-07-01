@@ -130,9 +130,16 @@ func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
 		return
 	}
+	// Test Request using DryRun
+	_, err = hr.cl.TestUpdateDeployedGameserver(c, namespace, updatedGameserver)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	// Persist tested Request
 	updatedGameServer, err := hr.cl.UpdateDeployedGameserver(c, namespace, updatedGameserver)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, updatedGameServer)

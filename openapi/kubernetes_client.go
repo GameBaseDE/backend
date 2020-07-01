@@ -177,8 +177,15 @@ func (k kubernetesClient) DeleteGameserver(ctx context.Context, namespace string
 	return nil
 }
 
+func (k kubernetesClient) TestUpdateDeployedGameserver(ctx context.Context, namespace string, target *gameServer) (*gameServer, error) {
+	return k.UpdateDeployedGameserverWithOptions(ctx, namespace, target, metav1.UpdateOptions{DryRun: []string{"All"}})
+}
+
 func (k kubernetesClient) UpdateDeployedGameserver(ctx context.Context, namespace string, target *gameServer) (*gameServer, error) {
-	updateOptions := metav1.UpdateOptions{}
+	return k.UpdateDeployedGameserverWithOptions(ctx, namespace, target, metav1.UpdateOptions{})
+}
+
+func (k kubernetesClient) UpdateDeployedGameserverWithOptions(ctx context.Context, namespace string, target *gameServer, updateOptions metav1.UpdateOptions) (*gameServer, error) {
 	//Update ConfigMap
 	updatedConfigMap, err := k.Client.CoreV1().ConfigMaps(namespace).Update(ctx, &target.configmap.ConfigMap, updateOptions)
 	if err != nil {
