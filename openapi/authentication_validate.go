@@ -11,6 +11,10 @@ import (
 
 func isValidLogin(ctx context.Context, request UserLogin, k kubernetesClient) (bool, error) {
 	user, err := k.GetUserSecret(ctx, request.Email)
+	if err != nil && strings.HasSuffix(err.Error(), "not found") {
+		return false, errors.New("user does not exist")
+	}
+
 	if err != nil {
 		return false, err
 	}
