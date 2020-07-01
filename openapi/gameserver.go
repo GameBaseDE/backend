@@ -40,6 +40,9 @@ func (gs *gameServer) GetName() string {
 }
 
 func (gs *gameServer) SetName(newName string) {
+	if newName == "" {
+		return
+	}
 	gs.deployment.Labels["name"] = newName
 }
 
@@ -66,6 +69,9 @@ func (gs *gameServer) GetPortMapping() []PortMapping {
 }
 
 func (gs *gameServer) SetPortMapping(newPortMapping []PortMapping) {
+	if newPortMapping == nil {
+		return
+	}
 	servicePorts := []v1.ServicePort{}
 	for num, portMapping := range newPortMapping {
 		newProtocol := v1.ProtocolTCP
@@ -94,6 +100,9 @@ func (gs *gameServer) GetContainerMemoryLimit() int32 {
 
 // SetContainerMemoryLimit - Recreates the PodSpec since Limits are immutable on existing objects
 func (gs *gameServer) SetContainerMemoryLimit(newLimit int32) {
+	if newLimit <= 0 {
+		return
+	}
 	newMemoryLimitQuantity, err := resource.ParseQuantity(fmt.Sprint(newLimit))
 	if err != nil {
 		fmt.Println("Could not parse requested MemoryLimit")
@@ -183,6 +192,9 @@ func (gs *gameServer) GetStartupArgs() string {
 }
 
 func (gs *gameServer) SetStartupArgs(newArgs string) {
+	if newArgs == "" {
+		return
+	}
 	container := gs.getContainer()
 	container.Args = strings.Split(newArgs, " ")
 }
@@ -193,6 +205,9 @@ func (gs *gameServer) GetDescription() string {
 }
 
 func (gs *gameServer) SetDescription(newDescription string) {
+	if newDescription == "" {
+		return
+	}
 	//TODO Evaluate using a separate ConfigMap or encoding into Labels
 	gs.configmap.Data["DESCRIPTION"] = newDescription
 }
@@ -227,6 +242,9 @@ func (gs *gameServer) GetEnvironmentVars() map[string]string {
 }
 
 func (gs *gameServer) SetEnvironmentVars(newEnvs map[string]string) {
+	if len(newEnvs) == 0 {
+		return
+	}
 	gs.configmap.Data = newEnvs
 }
 
