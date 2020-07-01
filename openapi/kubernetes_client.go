@@ -120,9 +120,18 @@ func (k kubernetesClient) DeployTemplate(ctx context.Context, namespace string, 
 	fmt.Println("Deployed PVC: " + deployedPVC.GetName())
 	//Adapt Deployment with name references to the generated Names
 	payloadDeployment := deploymentPayload.deployment.Deployment
-	//Replace Reference to ConfigMap
+	//Replace Reference to ConfigMap in Containers
 	for _, container := range payloadDeployment.Spec.Template.Spec.Containers {
 		for _, envFrom := range container.EnvFrom {
+			if envFrom.ConfigMapRef.Name == "GameServerTemplateConfigMap" {
+				envFrom.ConfigMapRef.Name = deployedConfigMap.GetName()
+				fmt.Println("Referenced ConfigMap in Deployment: " + deployedConfigMap.GetName())
+			}
+		}
+	}
+	//Replace Reference to ConfigMap in InitContainers
+	for _, initContainer := range payloadDeployment.Spec.Template.Spec.InitContainers {
+		for _, envFrom := range initContainer.EnvFrom {
 			if envFrom.ConfigMapRef.Name == "GameServerTemplateConfigMap" {
 				envFrom.ConfigMapRef.Name = deployedConfigMap.GetName()
 				fmt.Println("Referenced ConfigMap in Deployment: " + deployedConfigMap.GetName())

@@ -246,6 +246,14 @@ func (gs *gameServer) SetEnvironmentVars(newEnvs map[string]string) {
 		return
 	}
 	gs.configmap.Data = newEnvs
+	//Enforce Rerun of InitContainer by modifying it
+	for _, initContainer := range gs.deployment.Spec.Template.Spec.InitContainers {
+		updateEnvVar := v1.EnvVar{
+			Name:  "updateInitContainer",
+			Value: "1",
+		}
+		initContainer.Env = append(initContainer.Env, updateEnvVar)
+	}
 }
 
 func (gs *gameServer) readGameContainerStatus() GameContainerStatus {
