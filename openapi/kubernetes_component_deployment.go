@@ -36,3 +36,7 @@ func (k *kubernetesComponentDeployment) Validate(templatePrefix string) error {
 	fmt.Println("Deployment validated!")
 	return nil
 }
+
+func (k *kubernetesComponentDeployment) DeeperCopy() kubernetesComponentDeployment {
+	return kubernetesComponentDeployment{*k.DeepCopy()}
+}

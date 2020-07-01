@@ -36,3 +36,7 @@ func (k *kubernetesComponentService) Validate(templatePrefix string) error {
 	fmt.Println("Service validated!")
 	return nil
 }
+
+func (k *kubernetesComponentService) DeeperCopy() kubernetesComponentService {
+	return kubernetesComponentService{*k.DeepCopy()}
+}

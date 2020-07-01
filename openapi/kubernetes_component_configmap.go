@@ -32,3 +32,7 @@ func (k *kubernetesComponentConfigMap) Validate(templatePrefix string) error {
 	fmt.Println("ConfigMap validated!")
 	return nil
 }
+
+func (k *kubernetesComponentConfigMap) DeeperCopy() kubernetesComponentConfigMap {
+	return kubernetesComponentConfigMap{*k.DeepCopy()}
+}

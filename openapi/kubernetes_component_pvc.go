@@ -27,3 +27,7 @@ func (k *kubernetesComponentPVC) Validate(templatePrefix string) error {
 	fmt.Println("PersistentVolumeClaim validated!")
 	return nil
 }
+
+func (k *kubernetesComponentPVC) DeeperCopy() kubernetesComponentPVC {
+	return kubernetesComponentPVC{*k.DeepCopy()}
+}

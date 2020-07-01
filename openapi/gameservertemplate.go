@@ -39,10 +39,10 @@ func (gst *gameServerTemplate) Rename() error {
 
 func (gst *gameServerTemplate) GetUniqueGameServer() gameServer {
 	uniqueGameServer := gameServer{
-		configmap:  gst.configmap,
-		pvc:        gst.pvc,
-		deployment: gst.deployment,
-		service:    gst.service,
+		configmap:  gst.configmap.DeeperCopy(),
+		pvc:        gst.pvc.DeeperCopy(),
+		deployment: gst.deployment.DeeperCopy(),
+		service:    gst.service.DeeperCopy(),
 	}
 	//Populate user-definable Gameserver name
 	uniqueGameServer.deployment.Labels["name"] = gst.templateName

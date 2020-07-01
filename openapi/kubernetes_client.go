@@ -134,6 +134,8 @@ func (k kubernetesClient) DeployTemplate(ctx context.Context, namespace string, 
 		if volume.PersistentVolumeClaim.ClaimName == "GameServerTemplatePersistentVolumeClaim" {
 			volume.PersistentVolumeClaim.ClaimName = deployedPVC.GetName()
 			fmt.Println("Referenced PVC in Deployment: " + deployedPVC.GetName())
+		} else {
+			panic("payloadDeployment contains reference to Volume and not Templatestring")
 		}
 	}
 	//Deploy Deployment
