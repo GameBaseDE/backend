@@ -6,7 +6,7 @@ info:
   description: This is the REST API used as an communication layer between backend
     and frontend.
   title: GameBase Communication API
-  version: 2.0.0
+  version: 2.3.0
 externalDocs:
   description: Learn more about GameBase
   url: https://blog.game-base.de
@@ -16,12 +16,14 @@ servers:
 - description: Live Backend version of REST service
   url: https://game-base.de
 - description: SwaggerHub API Auto Mocking
-  url: https://virtserver.swaggerhub.com/GameBase9/gamebase_communication_api/2.0.0
+  url: https://virtserver.swaggerhub.com/GameBase9/gamebase_communication_api/2.1.0
 tags:
 - description: Game server and container management endpoints
   name: gameserver
 - description: Authentication endpoints
   name: auth
+- description: User management endpoints
+  name: user
 paths:
   /gs/status:
     get:
@@ -47,7 +49,7 @@ paths:
       tags:
       - gameserver
   /gs/start/{id}:
-    get:
+    post:
       operationId: startContainer
       parameters:
       - description: ID of game server to start
@@ -73,7 +75,7 @@ paths:
       tags:
       - gameserver
   /gs/stop/{id}:
-    get:
+    post:
       operationId: stopContainer
       parameters:
       - description: ID of game server to stop
@@ -99,7 +101,7 @@ paths:
       tags:
       - gameserver
   /gs/restart/{id}:
-    get:
+    post:
       operationId: restartContainer
       parameters:
       - description: ID of game server to restart
@@ -242,13 +244,72 @@ paths:
       summary: Login a user and return a JWT with the user object
       tags:
       - auth
+  /auth/register:
+    post:
+      requestBody:
+        $ref: '#/components/requestBodies/UserRegister'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Registration successful
+        "403":
+          description: Registration failed
+        "400":
+          description: Invalid input
+      summary: Register a user and return a JWT with the user object
+      tags:
+      - auth
+  /auth/logout:
+    delete:
+      responses:
+        "200":
+          description: Logout successful
+        "400":
+          description: Invalid input
+      security:
+      - Bearer: []
+      summary: Invalidate the passed JWT
+      tags:
+      - auth
+  /user/update:
+    post:
+      operationId: updateUserProfile
+      requestBody:
+        $ref: '#/components/requestBodies/UserProfile'
+      responses:
+        "200":
+          description: Successful operation
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exception'
+          description: User's profile could not be updated
+      security:
+      - Bearer: []
+      summary: Update fields of a user's profile
+      tags:
+      - user
 components:
   requestBodies:
+    UserProfile:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserProfile'
     UserLogin:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/UserLogin'
+    UserRegister:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserRegister'
     GameContainerDeployment:
       content:
         application/json:
@@ -268,9 +329,9 @@ components:
       default: UNKNOWN
       enum:
       - UNKNOWN
+      - STARTING
       - RUNNING
       - STOPPED
-      - RESTARTING
       - ERROR
       type: string
     RestartBehavior:
@@ -296,6 +357,30 @@ components:
       - email
       - password
       type: object
+    UserRegister:
+      example:
+        password: password
+        fullName: fullName
+        confirmPassword: confirmPassword
+        email: email
+      properties:
+        fullName:
+          description: Full name of the user
+          type: string
+        email:
+          description: Email address of the user
+          type: string
+        password:
+          description: The password of the user
+          type: string
+        confirmPassword:
+          description: The password confirmation of the user (must be equal to password)
+          type: string
+      required:
+      - confirmPassword
+      - email
+      - password
+      type: object
     User:
       example:
         fullName: fullName
@@ -316,6 +401,27 @@ components:
       - fullName
       - token
       type: object
+    UserProfile:
+      example:
+        password:
+          new: new
+          old: old
+        gravatar: gravatar
+        email: email
+        username: username
+      properties:
+        username:
+          description: Username of the user
+          type: string
+        email:
+          description: E-mail address of the user
+          type: string
+        password:
+          $ref: '#/components/schemas/UserProfile_password'
+        gravatar:
+          description: E-mail address of the Gravatar to be used
+          type: string
+      type: object
     Exception:
       properties:
         id:
@@ -331,6 +437,32 @@ components:
       - details
       - exception
       type: object
+    Protocol:
+      default: TCP
+      enum:
+      - TCP
+      - UDP
+      type: string
+    PortMapping:
+      example:
+        containerPort: 6
+        nodePort: 0
+      properties:
+        protocol:
+          $ref: '#/components/schemas/Protocol'
+        nodePort:
+          description: Externally exposed Port Number
+          format: int16
+          type: integer
+        containerPort:
+          description: Internal Port Number routed to Container
+          format: int16
+          type: integer
+      required:
+      - containerPort
+      - nodePort
+      - protocol
+      type: object
     GameContainerStatus:
       example:
         configuration:
@@ -340,17 +472,14 @@ components:
             environmentVars:
               key: environmentVars
             ports:
-              tcp:
-              - 0
-              - 0
-              udp:
-              - 6
-              - 6
+            - containerPort: 6
+              nodePort: 0
+            - containerPort: 6
+              nodePort: 0
             templatePath: templatePath
           details:
             serverName: serverName
             description: description
-            ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         gameServerDetails:
           key: gameServerDetails
         id: id
@@ -392,17 +521,14 @@ components:
           environmentVars:
             key: environmentVars
           ports:
-            tcp:
-            - 0
-            - 0
-            udp:
-            - 6
-            - 6
+          - containerPort: 6
+            nodePort: 0
+          - containerPort: 6
+            nodePort: 0
           templatePath: templatePath
         details:
           serverName: serverName
           description: description
-          ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         details:
           $ref: '#/components/schemas/GameContainerConfiguration_details'
@@ -412,46 +538,30 @@ components:
       - details
       - resources.templatePath
       type: object
+    UserProfile_password:
+      example:
+        new: new
+        old: old
+      properties:
+        old:
+          description: Old password of the user as a confirmation step
+          type: string
+        new:
+          description: New desired password of the user
+          type: string
     GameContainerConfiguration_details:
       description: General details of server
       example:
         serverName: serverName
         description: description
-        ownerId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         serverName:
           description: Name of server that will displayed on one's Dashboard
-          type: string
-        ownerId:
-          description: UUID of owner whom this server belongs to
-          format: uuid
           type: string
         description:
           description: Short description of server which will be displayed on one's
             Dashboard
           type: string
-      type: object
-    GameContainerConfiguration_resources_ports:
-      description: Ports to be allocated
-      example:
-        tcp:
-        - 0
-        - 0
-        udp:
-        - 6
-        - 6
-      properties:
-        tcp:
-          items:
-            format: int16
-            type: integer
-          type: array
-        udp:
-          items:
-            format: int16
-            type: integer
-          type: array
-      type: object
     GameContainerConfiguration_resources:
       example:
         startupArgs: startupArgs
@@ -459,12 +569,10 @@ components:
         environmentVars:
           key: environmentVars
         ports:
-          tcp:
-          - 0
-          - 0
-          udp:
-          - 6
-          - 6
+        - containerPort: 6
+          nodePort: 0
+        - containerPort: 6
+          nodePort: 0
         templatePath: templatePath
       properties:
         templatePath:
@@ -472,7 +580,10 @@ components:
             for game container creation
           type: string
         ports:
-          $ref: '#/components/schemas/GameContainerConfiguration_resources_ports'
+          description: PortMappings for the Container
+          items:
+            $ref: '#/components/schemas/PortMapping'
+          type: array
         memory:
           default: -1
           description: Memory to be allocated
@@ -487,7 +598,6 @@ components:
             type: string
           description: Environment variables that configure the game server
           type: object
-      type: object
   securitySchemes:
     Bearer:
       description: |

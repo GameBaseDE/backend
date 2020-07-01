@@ -10,14 +10,17 @@
 
 package openapi
 
-type User struct {
+type UserRegister struct {
+
+	// Full name of the user
+	FullName string `json:"fullName,omitempty"`
 
 	// Email address of the user
 	Email string `json:"email"`
 
-	// The full name of the user
-	FullName string `json:"fullName"`
+	// The password of the user
+	Password string `json:"password"`
 
-	// The JWT of the users session
-	Token string `json:"token"`
+	// The password confirmation of the user (must be equal to password)
+	ConfirmPassword string `json:"confirmPassword"`
 }

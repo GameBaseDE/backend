@@ -10,7 +10,39 @@ type httpRequestParser struct {
 }
 
 func newHttpRequestParser() *httpRequestParser {
-	return &httpRequestParser{nextHandler: newHttpRequestKubernetesTranslator()}
+	return &httpRequestParser{nextHandler: newHttpRequestKubernetesController()}
+}
+
+func (hr *httpRequestParser) kubernetesClient() kubernetesClient {
+	return hr.nextHandler.kubernetesClient()
+}
+
+// Login - Login a user and return a JWT with the user object
+func (hr *httpRequestParser) Login(c *gin.Context) {
+	return
+}
+
+// Logout - Invalidate the passed JWT
+func (hr *httpRequestParser) Logout(c *gin.Context) {
+	return
+}
+
+// Register - Register a user and return a JWT with the user object
+func (hr *httpRequestParser) Register(c *gin.Context) {
+	var request UserRegister
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Password != request.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must match confirmation password"})
+		return
+	}
+
+	user := GamebaseUser{Name: request.FullName, Email: request.Email, Password: request.Password}
+	c.Set("request", user)
+	hr.nextHandler.Register(c)
 }
 
 // ListTemplates - Get a list of all available game server images
@@ -95,4 +127,14 @@ func (hr *httpRequestParser) DeleteContainer(c *gin.Context) {
 	}
 	c.Set("id", id)
 	hr.nextHandler.DeleteContainer(c)
+}
+
+func (hr *httpRequestParser) UpdateUserProfile(c *gin.Context) {
+	var request UserProfile
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.Set("request", request)
+	hr.nextHandler.UpdateUserProfile(c)
 }

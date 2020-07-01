@@ -10,13 +10,11 @@
 
 package openapi
 
-type Status string
-
-// List of Status
-const (
-	UNKNOWN Status = "UNKNOWN"
-	STARTING Status = "STARTING"
-	RUNNING Status = "RUNNING"
-	STOPPED Status = "STOPPED"
-	ERROR Status = "ERROR"
+import (
+	"github.com/gin-gonic/gin"
 )
+
+// UpdateUserProfile - Update fields of a user's profile
+func UpdateUserProfile(c *gin.Context) {
+	NewHttpRequestProcessingChain().UpdateUserProfile(c)
+}
