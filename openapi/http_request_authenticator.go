@@ -27,7 +27,7 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	validLogin, err := isValidLogin(request, k)
+	validLogin, err := isValidLogin(c, request, k)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -38,7 +38,7 @@ func (hr *httpRequestAuthenticator) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := k.GetUserSecret(request.Email)
+	user, err := k.GetUserSecret(c, request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -185,7 +185,7 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 		return
 	}
 
-	valid, err := isValidLogin(request, k)
+	valid, err := isValidLogin(c, request, k)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -195,7 +195,7 @@ func (hr *httpRequestAuthenticator) AuthLoginPost(c *gin.Context) {
 		return
 	}
 
-	user, err := k.GetUserSecret(request.Email)
+	user, err := k.GetUserSecret(c, request.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -239,7 +239,7 @@ func extractNamespace(c *gin.Context, k kubernetesClient) error {
 		return err
 	}
 
-	uuid, err := k.GetUuid(email)
+	uuid, err := k.GetUuid(c, email)
 	if err != nil {
 		return err
 	}

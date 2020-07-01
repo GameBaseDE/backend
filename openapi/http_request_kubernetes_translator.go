@@ -8,13 +8,12 @@ import (
 
 type httpRequestKubernetesTranslator struct {
 	nextHandler httpRequestHandler
-	api         API
 	cl          kubernetesClient
 	templates   []*gameServerTemplate
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
+	return &httpRequestKubernetesTranslator{cl: newKubernetesClientset(), templates: readGameServerTemplates()}
 }
 
 func (hr *httpRequestKubernetesTranslator) kubernetesClient() kubernetesClient {
@@ -42,19 +41,19 @@ func (hr *httpRequestKubernetesTranslator) Register(c *gin.Context) {
 		panic("request is of invalid type")
 	}
 
-	if err := hr.cl.SetUserSecret(user.Email, user); err != nil {
+	if err := hr.cl.SetUserSecret(c, user.Email, user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	uuid, err := hr.cl.GetUuid(user.Email)
+	uuid, err := hr.cl.GetUuid(c, user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	namespace := defaultNamespaceUser + uuid
-	if _, err := hr.cl.CreateNamespace(namespace); err != nil {
+	if _, err := hr.cl.CreateNamespace(c, namespace); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -91,7 +90,7 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 	id := c.GetString("id")
 	existingGameServers := []*gameServer{}
 	if id == "" {
-		gameServers, err := hr.cl.GetGameServerList(getNamespace(c))
+		gameServers, err := hr.cl.GetGameServerList(c, getNamespace(c))
 		existingGameServers = gameServers
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -114,27 +113,36 @@ func (hr *httpRequestKubernetesTranslator) GetStatus(c *gin.Context) {
 
 // ConfigureContainer - Configure a game server based on POST body
 func (hr *httpRequestKubernetesTranslator) ConfigureContainer(c *gin.Context) {
-	if id := c.GetString("id"); id != "" {
-		if request, exists := c.Get("request"); exists {
-			if request, ok := request.(GameContainerConfiguration); ok {
-				if result, err := hr.api.Configure(id, request); err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				} else {
-					h := gin.H{"status": "ok"}
-					h["message"] = AsGameServerStatus(result)
-					c.JSON(http.StatusOK, h)
-				}
-
-				return
-			}
-
-			panic("request is of invalid type")
-		}
-
+	namespace, existingGameServer := hr.parseIdRequest(c)
+	if existingGameServer == nil {
+		return
+	}
+	request, exists := c.Get("request")
+	if !exists {
 		panic("request is unset")
 	}
-
-	panic("id is unset")
+	configurationRequest, ok := request.(GameContainerConfiguration)
+	if !ok {
+		panic("request is of invalid type")
+	}
+	updatedGameserver, err := existingGameServer.UpdateGameServer(configurationRequest)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	// Test Request using DryRun
+	_, err = hr.cl.TestUpdateDeployedGameserver(c, namespace, updatedGameserver)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	// Persist tested Request
+	updatedGameServer, err := hr.cl.UpdateDeployedGameserver(c, namespace, updatedGameserver)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, updatedGameServer)
 }
 
 // DeployContainer - Deploy a game server based on POST body
@@ -152,9 +160,9 @@ func (hr *httpRequestKubernetesTranslator) DeployContainer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	gameServer, err := hr.cl.DeployTemplate(getNamespace(c), template)
+	_, err = hr.cl.DeployTemplate(c, getNamespace(c), template)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, Exception{Id: gameServer.GetUID(), Details: err.Error()})
+		c.JSON(http.StatusInternalServerError, Exception{Details: err.Error()})
 		return
 	}
 	h := gin.H{"status": "ok"}
@@ -205,7 +213,7 @@ func (hr *httpRequestKubernetesTranslator) DeleteContainer(c *gin.Context) {
 	if existingGameServer == nil {
 		return
 	}
-	err := hr.cl.DeleteGameserver(namespace, existingGameServer)
+	err := hr.cl.DeleteGameserver(c, namespace, existingGameServer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
@@ -236,7 +244,7 @@ func (hr *httpRequestKubernetesTranslator) UpdateUserProfile(c *gin.Context) {
 
 	k := hr.kubernetesClient()
 
-	oldSecret, err := k.GetUserSecret(oldEmail)
+	oldSecret, err := k.GetUserSecret(c, oldEmail)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
@@ -252,14 +260,14 @@ func (hr *httpRequestKubernetesTranslator) UpdateUserProfile(c *gin.Context) {
 		newEmail = oldEmail
 	}
 
-	err = k.SetUserSecret(newEmail, gamebaseUser)
+	err = k.SetUserSecret(c, newEmail, gamebaseUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return
 	}
 
 	if newEmail != oldEmail {
-		err := k.DeleteUserSecret(oldEmail)
+		err := k.DeleteUserSecret(c, oldEmail)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 			return
@@ -289,7 +297,7 @@ func (hr *httpRequestKubernetesTranslator) parseIdRequest(c *gin.Context) (strin
 		return "", nil
 	}
 	namespace := getNamespace(c)
-	existingGameServer, err := hr.cl.GetGameServer(namespace, id)
+	existingGameServer, err := hr.cl.GetGameServer(c, namespace, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: "", Details: err.Error()})
 		return "", nil
@@ -303,7 +311,7 @@ func (hr *httpRequestKubernetesTranslator) rescale(c *gin.Context, replicas int3
 	if existingGameServer == nil {
 		return false
 	}
-	err := hr.cl.Rescale(namespace, existingGameServer, replicas)
+	err := hr.cl.Rescale(c, namespace, existingGameServer, replicas)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Exception{Id: existingGameServer.GetUID(), Details: err.Error()})
 		return false
