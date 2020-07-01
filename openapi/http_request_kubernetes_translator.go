@@ -8,13 +8,12 @@ import (
 
 type httpRequestKubernetesTranslator struct {
 	nextHandler httpRequestHandler
-	api         API
 	cl          kubernetesClient
 	templates   []*gameServerTemplate
 }
 
 func newHttpRequestKubernetesTranslator() *httpRequestKubernetesTranslator {
-	return &httpRequestKubernetesTranslator{api: API{}, cl: newKubernetesClientset(), templates: readGameServerTemplates()}
+	return &httpRequestKubernetesTranslator{cl: newKubernetesClientset(), templates: readGameServerTemplates()}
 }
 
 func (hr *httpRequestKubernetesTranslator) kubernetesClient() kubernetesClient {
