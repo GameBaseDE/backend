@@ -188,12 +188,13 @@ func (gs *gameServer) SetStartupArgs(newArgs string) {
 }
 
 func (gs *gameServer) GetDescription() string {
-	//TODO introduce description label
-	return ""
+	//TODO Evaluate using a separate ConfigMap or encoding into Labels
+	return gs.configmap.Data["DESCRIPTION"]
 }
 
 func (gs *gameServer) SetDescription(newDescription string) {
-	//TODO introduce description label
+	//TODO Evaluate using a separate ConfigMap or encoding into Labels
+	gs.configmap.Data["DESCRIPTION"] = newDescription
 }
 
 func (gs *gameServer) GetRestartBehavior() RestartBehavior {
